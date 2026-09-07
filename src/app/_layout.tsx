@@ -6,21 +6,42 @@ import {
   useRouter,
   useSegments,
 } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { extractJoinToken } from '@/config/session';
 import { useAuth } from '@/hooks/use-auth';
 import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
+import { usePendingJoinStore } from '@/stores/pending-join-store';
 
 const PUBLIC_SEGMENTS = ['welcome'];
+
+/**
+ * Capture un deep link `lingolink://join/<token>` reçu alors que l'utilisateur
+ * n'est pas connecté : le token est mémorisé pour reprendre après auth.
+ * (Quand l'utilisateur est déjà connecté, expo-router route directement.)
+ */
+function useDeepLinkCapture(isAuthenticated: boolean) {
+  const incomingUrl = Linking.useURL();
+  const setPending = usePendingJoinStore((s) => s.set);
+  useEffect(() => {
+    if (!incomingUrl || isAuthenticated) return;
+    const token = extractJoinToken(incomingUrl);
+    if (token) setPending(token);
+  }, [incomingUrl, isAuthenticated, setPending]);
+}
 
 function useAuthRouting() {
   const { isLoading, isAuthenticated, needsOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const pendingToken = usePendingJoinStore((s) => s.token);
+
+  useDeepLinkCapture(isAuthenticated);
 
   useEffect(() => {
     if (isLoading) return;
@@ -29,12 +50,14 @@ function useAuthRouting() {
 
     if (!isAuthenticated && !inPublic) {
       router.replace('/welcome');
-    } else if (isAuthenticated && inPublic) {
-      router.replace(needsOnboarding ? '/onboarding' : '/');
     } else if (isAuthenticated && needsOnboarding && current !== 'onboarding') {
       router.replace('/onboarding');
+    } else if (isAuthenticated && !needsOnboarding && pendingToken && current !== 'join') {
+      router.replace(`/join/${pendingToken}`);
+    } else if (isAuthenticated && inPublic) {
+      router.replace(needsOnboarding ? '/onboarding' : '/');
     }
-  }, [isLoading, isAuthenticated, needsOnboarding, segments, router]);
+  }, [isLoading, isAuthenticated, needsOnboarding, pendingToken, segments, router]);
 
   return { isLoading };
 }
@@ -75,6 +98,7 @@ function RootNavigator() {
         options={{ title: 'Inviter', presentation: 'modal' }}
       />
       <Stack.Screen name="scan" options={{ title: 'Scanner un QR' }} />
+      <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
       <Stack.Screen name="contacts" options={{ title: 'Mes contacts' }} />
       <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />
       <Stack.Screen name="profile" options={{ title: 'Profil' }} />

@@ -126,7 +126,16 @@ Ne jamais coder une langue en dur ailleurs.
   attendu ~1,5-2 s en prod. Optimisations : streaming progressif, modèle
   `gemini-3.5-flash`, requêtes auth+session en parallèle, insert non bloquant,
   audio compressé. Testé de bout en bout.
-- Phases 7→10 : lien d'invitation, contacts, proximité, polish.
+- ✅ **Phase 7** — Lien d'invitation : deep link `lingolink://join/<token>`
+  (scheme déjà enregistré, route `app/join/[token].tsx`). `GET /api/sessions/lookup`
+  (public, aperçu langues + expiration sans rejoindre, par token ou code court).
+  Écran de confirmation (langues, compte à rebours, Rejoindre). Partage natif
+  (`Share`) + « Copier le lien » (`expo-clipboard`). Deep link reçu hors
+  connexion → token mémorisé (`pending-join-store`) → repris après auth/onboarding.
+  Compatible Universal Links / App Links plus tard : `extractJoinToken` +
+  `useDeepLinkCapture` parsent n'importe quelle URL contenant `/join/<token>` ;
+  il suffira d'ajouter le domaine dans `app.json` + fichiers AASA/assetlinks.
+- Phases 8→10 : contacts, proximité, polish.
 
 ## Commandes
 

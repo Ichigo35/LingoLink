@@ -53,6 +53,20 @@ export const conversationsService = {
     return session;
   },
 
+  /** Aperçu public d'une invitation (langues + expiration) sans rejoindre. */
+  async lookupInvitation(params: { token?: string; code?: string }): Promise<{
+    status: string;
+    creatorLanguage: LanguageCode;
+    participantLanguage: LanguageCode;
+    expiresAt: string | null;
+    joinable: boolean;
+  }> {
+    const qs = params.token
+      ? `token=${encodeURIComponent(params.token)}`
+      : `code=${encodeURIComponent(params.code ?? '')}`;
+    return apiRequest(`/api/sessions/lookup?${qs}`, { cookie: await authHeader() });
+  },
+
   async joinByCode(code: string): Promise<ConversationSession> {
     const { session } = await apiRequest<SessionResponse>('/api/sessions/join', {
       method: 'POST',

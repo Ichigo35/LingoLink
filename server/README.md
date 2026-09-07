@@ -17,6 +17,8 @@ parle jamais directement à Neon ni à Gemini.
 - ✅ **Phase 6** — Conversation : `src/messages.ts` (`/api/sessions/:id/messages`),
   transcription + traduction **streamées** vers la room DO (`message` /
   `message_update`). Modèle `gemini-3.5-flash`. Migration `0003_messages.sql`.
+- ✅ **Phase 7** — Lien d'invitation : `GET /api/sessions/lookup` (aperçu public).
+  Deep link `lingolink://join/<token>` côté app.
 
 ## Stack
 
@@ -33,6 +35,7 @@ parle jamais directement à Neon ni à Gemini.
 | `GET /api/health` | ping |
 | `GET /api/config` | `{ googleEnabled }` — l'app masque le bouton Google si false |
 | `GET /api/profile/username-available?u=` | disponibilité d'un username |
+| `GET /api/sessions/lookup?token=` \| `?code=` | aperçu public d'une invitation (langues, expiration) sans rejoindre |
 | `POST /api/sessions` | crée une session (auth) → token + code court + `joinUrl` |
 | `POST /api/sessions/join` | rejoint via `{token}` ou `{code}` (auth) |
 | `GET /api/sessions/:id` | détail (créateur ou participant) |

@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
@@ -24,6 +25,7 @@ export default function HostSessionScreen() {
   const [session, setSession] = useState<ConversationSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
   const creatingRef = useRef(false);
 
   // Suit la session en temps réel dès sa création (présence + statut).
@@ -89,6 +91,13 @@ export default function HostSessionScreen() {
     await Share.share({
       message: `Rejoignez ma conversation Lingo Link : ${session.joinUrl}\nCode : ${session.shortCode}`,
     });
+  }
+
+  async function copyLink() {
+    if (!session) return;
+    await Clipboard.setStringAsync(session.joinUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   if (error) {
@@ -163,7 +172,19 @@ export default function HostSessionScreen() {
       {expired ? (
         <Button label="Nouvelle session" onPress={createSession} style={styles.cta} />
       ) : (
-        <Button label="Partager le lien" icon="🔗" variant="secondary" onPress={shareLink} style={styles.cta} />
+        <>
+          <Button
+            label="Partager le lien"
+            icon="🔗"
+            onPress={shareLink}
+            style={styles.cta}
+          />
+          <Button
+            label={copied ? '✓ Lien copié' : 'Copier le lien'}
+            variant="secondary"
+            onPress={copyLink}
+          />
+        </>
       )}
       <Button label="Annuler" variant="ghost" onPress={cancel} />
     </Screen>

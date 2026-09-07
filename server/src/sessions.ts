@@ -85,6 +85,42 @@ function ownSessionQuery(db: Kysely<Database>, sessionId: string, userId: string
 }
 
 export function registerSessionRoutes(app: Hono<AppEnv>) {
+  // Aperçu public d'une invitation (langues + expiration) AVANT de rejoindre.
+  // Ne révèle ni l'id de session, ni les identités. Le token aléatoire (43 car.)
+  // rend le brute-force impossible.
+  app.get('/api/sessions/lookup', async (c) => {
+    const token = (c.req.query('token') ?? '').trim();
+    const code = c.req.query('code') ? normalizeShortCode(c.req.query('code') as string) : null;
+    if (!token && !code) {
+      return c.json({ code: 'missing_token', message: 'Token ou code requis' }, 400);
+    }
+    const row = await c
+      .get('db')
+      .selectFrom('conversation_sessions')
+      .select(['status', 'creator_language', 'participant_language', 'expires_at'])
+      .where((eb) =>
+        eb.or([
+          ...(token ? [eb('connection_token', '=', token)] : []),
+          ...(code ? [eb('short_code', '=', code)] : []),
+        ]),
+      )
+      .executeTakeFirst();
+    if (!row) return c.json({ code: 'not_found', message: 'Invitation introuvable' }, 404);
+
+    const expired =
+      row.status === 'expired' ||
+      (row.status === 'waiting' && !!row.expires_at && new Date(row.expires_at).getTime() < Date.now());
+    return c.json({
+      status: expired ? 'expired' : row.status,
+      creatorLanguage: row.creator_language,
+      participantLanguage: row.participant_language,
+      expiresAt: row.expires_at
+        ? (row.expires_at instanceof Date ? row.expires_at : new Date(row.expires_at)).toISOString()
+        : null,
+      joinable: !expired && row.status === 'waiting',
+    });
+  });
+
   // Création d'une session (le créateur).
   app.post('/api/sessions', async (c) => {
     const user = await requireUser(c);
