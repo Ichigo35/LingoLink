@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { Kysely } from 'kysely';
 
+import { registerAiRoutes } from './ai';
 import { createAuth } from './auth';
 import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
@@ -33,7 +34,9 @@ app.use('*', async (c, next) => {
 
 app.get('/api/health', (c) => c.json({ ok: true, service: 'lingolink-api' }));
 
-app.get('/api/config', (c) => c.json({ googleEnabled: hasGoogleOAuth(c.env) }));
+app.get('/api/config', (c) =>
+  c.json({ googleEnabled: hasGoogleOAuth(c.env), aiEnabled: Boolean(c.env.GEMINI_API_KEY) }),
+);
 
 /** Disponibilité d'un username (3–20 caractères, a-z 0-9 _). */
 app.get('/api/profile/username-available', async (c) => {
@@ -52,6 +55,7 @@ app.get('/api/profile/username-available', async (c) => {
 
 registerSessionRoutes(app);
 registerRealtimeRoutes(app);
+registerAiRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

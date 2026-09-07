@@ -104,8 +104,17 @@ Ne jamais coder une langue en dur ailleurs.
   (snapshot HTTP + temps réel, poll de secours 15 s si déconnecté) remplace
   `useSession`. `session/host` détecte la jointure via temps réel, plus de polling.
   Testé de bout en bout (présence, join, message, end, ticket invalide).
-- Phases 5→10 : pipeline Gemini, conversation complète, lien d'invitation,
-  contacts, proximité, polish.
+- ✅ **Phase 5** — Pipeline Gemini : proxy dans le Worker (clé jamais exposée).
+  `POST /api/ai/process` (audio → transcript + traduction, JSON structuré),
+  `/api/ai/transcribe`, `/api/ai/translate`. `gemini-2.5-flash` (configurable
+  `GEMINI_MODEL`), thinking désactivé, retry 503/429 backoff, timeout 30 s.
+  Fournisseur abstrait `TranslationProvider` (Gemini remplaçable).
+  App : `GeminiAIService` implémente `AITranslationService`, `useAudioCapture`
+  (expo-audio, push-to-talk), écran dev **Réglages → Test du pipeline IA**.
+  Testé : fr→en, fr→lo, en→lo, transcribe seul, cas d'erreur. Latence ~4 s /
+  phrase courte.
+- Phases 6→10 : conversation complète (micro→IA→temps réel→autre tel),
+  lien d'invitation, contacts, proximité, polish.
 
 ## Commandes
 

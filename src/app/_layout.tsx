@@ -79,6 +79,7 @@ function RootNavigator() {
       <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />
       <Stack.Screen name="profile" options={{ title: 'Profil' }} />
       <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+      <Stack.Screen name="ai-test" options={{ title: 'Test IA' }} />
       <Stack.Screen name="conversation/[id]" options={{ title: 'Conversation' }} />
     </Stack>
   );

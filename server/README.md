@@ -12,7 +12,9 @@ parle jamais directement à Neon ni à Gemini.
   `conversation_sessions` mais inerte sur Neon (BYPASSRLS hérité).
 - ✅ **Phase 4** — Temps réel : Durable Object `SessionRoom` (`src/session-room.ts`),
   auth par ticket HMAC (`src/tickets.ts`), routes `src/realtime.ts`.
-- ⏳ Phase 5 — proxy Gemini (`/api/ai/*`).
+- ✅ **Phase 5** — Proxy Gemini : `src/gemini.ts` (client REST + retry),
+  `src/ai.ts` (`TranslationProvider` abstrait + `GeminiProvider`, routes
+  `/api/ai/*`). Clé Gemini uniquement côté Worker.
 
 ## Stack
 
@@ -36,6 +38,9 @@ parle jamais directement à Neon ni à Gemini.
 | `POST /api/sessions/:id/end` | terminer (créateur uniquement) |
 | `POST /api/sessions/:id/realtime-ticket` | ticket HMAC court + `wsUrl` |
 | `GET /api/rt/:id?ticket=` | upgrade WebSocket → Durable Object `SessionRoom` |
+| `POST /api/ai/process` | `{audioBase64, mimeType, sourceLanguage, targetLanguage}` → `{transcript, translation}` |
+| `POST /api/ai/transcribe` | `{audioBase64, mimeType, language}` → `{transcript}` |
+| `POST /api/ai/translate` | `{text, sourceLanguage, targetLanguage}` → `{translation}` |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
 
 ### Évènements WebSocket (serveur → client)
@@ -53,7 +58,9 @@ Client → serveur : `{ type: 'ping' }`, `{ type: 'message' | 'message_update', 
 | `DATABASE_URL` | Connexion Neon (endpoint `-pooler`) |
 | `BETTER_AUTH_SECRET` | Secret de signature des sessions |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Google (vide = fournisseur désactivé) |
-| `GEMINI_API_KEY` | Clé Gemini (Phase 5) |
+| `GEMINI_API_KEY` | Clé Gemini (vide = `/api/ai/*` renvoie 503) |
+
+Variable publique optionnelle : `GEMINI_MODEL` (défaut `gemini-2.5-flash`).
 
 Variable publique : `BETTER_AUTH_URL` (dans `wrangler.jsonc`) = URL publique du Worker.
 

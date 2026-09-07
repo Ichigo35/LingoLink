@@ -12,8 +12,10 @@ export interface Env {
   /** Google OAuth — vide = fournisseur désactivé. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  /** Clé Gemini — utilisée à partir de la Phase 5. */
+  /** Clé Gemini (proxy transcription + traduction). */
   GEMINI_API_KEY?: string;
+  /** Modèle Gemini (défaut : gemini-2.5-flash). */
+  GEMINI_MODEL?: string;
 }
 
 export function hasGoogleOAuth(env: Env): boolean {

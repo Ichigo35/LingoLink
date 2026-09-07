@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -24,6 +25,7 @@ const UI_LANGUAGE_OPTIONS: { value: UiLanguage; label: string }[] = [
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { themePreference, uiLanguage, setThemePreference, setUiLanguage } = useSettingsStore();
 
   return (
@@ -61,6 +63,17 @@ export default function SettingsScreen() {
           (Phase 10). Ce réglage est déjà persisté.
         </ThemedText>
       </View>
+
+      {__DEV__ ? (
+        <View style={styles.group}>
+          <ThemedText style={styles.groupTitle}>Développement</ThemedText>
+          <Button
+            label="Test du pipeline IA"
+            variant="secondary"
+            onPress={() => router.push('/ai-test')}
+          />
+        </View>
+      ) : null}
 
       <View style={[styles.about, { borderColor: theme.border }]}>
         <ThemedText themeColor="textSecondary" style={styles.note}>

@@ -43,6 +43,12 @@
         {
           "cameraPermission": "Lingo Link utilise la caméra pour scanner le QR code d'une conversation."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Lingo Link utilise le micro pour transcrire et traduire ce que vous dites."
+        }
       ]
     ],
     "experiments": {
