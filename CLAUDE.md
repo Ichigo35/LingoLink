@@ -76,11 +76,15 @@ Ne jamais coder une langue en dur ailleurs.
   écran d'accueil + écrans placeholder, thème/dark mode, réglages fonctionnels.
 - ✅ **Phase 2** — Auth & profils : backend `server/` (Cloudflare Worker + Hono +
   Better Auth + Neon). Mode invité (anonyme) fonctionnel de bout en bout.
-  Google OAuth codé mais désactivé tant que `GOOGLE_CLIENT_ID/SECRET` absents.
+  **Google OAuth configuré et vérifié** (projet GCP `lingo-link-507902`, client
+  « Lingo Link Web », creds dans `server/.dev.vars`, écran de consentement en
+  mode Test avec `tcha.jimmy@gmail.com` comme utilisateur test).
   App : `welcome`, `onboarding`, `profile`, garde de session dans `_layout.tsx`,
   `useAuth()`, `authClient` (better-auth expo), `authService`.
-  ⚠️ Reste à faire par l'utilisateur : déployer le Worker (`server/DEPLOY.md`) et
-  fournir les identifiants Google OAuth.
+  ⚠️ Reste à faire par l'utilisateur : déployer le Worker (`server/DEPLOY.md`,
+  puis ajouter la redirect URI de prod dans la console Google). Tester la
+  connexion Google de préférence en dev build (`npx expo run:ios`), pas Expo Go
+  (deep-linking).
 - ⏳ Phase 3 — sessions de conversation, token sécurisé, expiration, QR, rejoindre.
 - Phases 4→10 : Realtime, pipeline Gemini, conversation complète,
   lien d'invitation, contacts, proximité, polish.

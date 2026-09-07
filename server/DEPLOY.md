@@ -21,12 +21,12 @@ Les secrets sont lus depuis `server/.dev.vars` (gitignored, déjà rempli).
 ```bash
 cd server
 
-# Secrets de production (une seule fois) :
-npx wrangler secret put DATABASE_URL         # coller la chaîne Neon (endpoint -pooler)
-npx wrangler secret put BETTER_AUTH_SECRET   # coller la valeur de .dev.vars
-# (plus tard) :
+# Secrets de production (une seule fois) — coller les valeurs de server/.dev.vars :
+npx wrangler secret put DATABASE_URL
+npx wrangler secret put BETTER_AUTH_SECRET
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
+# (Phase 5) :
 npx wrangler secret put GEMINI_API_KEY
 
 # Premier déploiement :
@@ -34,9 +34,12 @@ npx wrangler deploy
 # -> note l'URL renvoyée : https://lingolink-api.<sous-domaine>.workers.dev
 ```
 
-Ensuite, mettre à jour la variable publique `BETTER_AUTH_URL` dans
-`wrangler.jsonc` (`vars.BETTER_AUTH_URL`) avec cette URL exacte, puis
-`npx wrangler deploy` à nouveau.
+Ensuite :
+1. Mettre à jour `vars.BETTER_AUTH_URL` dans `wrangler.jsonc` avec cette URL, puis
+   `npx wrangler deploy` à nouveau.
+2. Dans la console Google Cloud (projet `lingo-link-507902` → Clients → « Lingo
+   Link Web »), ajouter la redirect URI de prod :
+   `https://lingolink-api.<sous-domaine>.workers.dev/api/auth/callback/google`.
 
 Enfin, dans `../.env` de l'app :
 ```
