@@ -36,7 +36,10 @@ Neon Postgres (RLS)
 - Service IA abstrait : `src/services/ai/types.ts` (`AITranslationService`). Aucun
   composant ne dépend de Gemini directement.
 - Temps réel : Cloudflare Durable Objects (remplace Supabase Realtime).
-- Auth : Neon Auth + Google OAuth ; mode invité = session anonyme locale.
+- Auth : **Better Auth** (auto-hébergé sur le Worker) — plugins `expo()` +
+  `anonymous()`. Mode invité = `signIn.anonymous()`. Google OAuth activable.
+  Tables auth dans Neon (`user`, `session`, `account`, `verification`).
+  Le worker `lingolink-api` : voir `server/`.
 
 ## Structure du code
 
@@ -71,8 +74,15 @@ Ne jamais coder une langue en dur ailleurs.
 
 - ✅ **Phase 1** — Init : scaffold Expo SDK 57, structure, config langues, env,
   écran d'accueil + écrans placeholder, thème/dark mode, réglages fonctionnels.
-- ⏳ Phase 2 — Auth (invité + Google) & profils.
-- Phases 3→10 : sessions/QR, Realtime, pipeline Gemini, conversation complète,
+- ✅ **Phase 2** — Auth & profils : backend `server/` (Cloudflare Worker + Hono +
+  Better Auth + Neon). Mode invité (anonyme) fonctionnel de bout en bout.
+  Google OAuth codé mais désactivé tant que `GOOGLE_CLIENT_ID/SECRET` absents.
+  App : `welcome`, `onboarding`, `profile`, garde de session dans `_layout.tsx`,
+  `useAuth()`, `authClient` (better-auth expo), `authService`.
+  ⚠️ Reste à faire par l'utilisateur : déployer le Worker (`server/DEPLOY.md`) et
+  fournir les identifiants Google OAuth.
+- ⏳ Phase 3 — sessions de conversation, token sécurisé, expiration, QR, rejoindre.
+- Phases 4→10 : Realtime, pipeline Gemini, conversation complète,
   lien d'invitation, contacts, proximité, polish.
 
 ## Commandes
@@ -80,9 +90,12 @@ Ne jamais coder une langue en dur ailleurs.
 | But | Commande |
 |-----|----------|
 | Lancer l'app | `npx expo start` (puis `i` / `a` / QR Expo Go) |
-| Typecheck | `npx tsc --noEmit` |
+| Lancer le backend | `cd server && npm run dev` (→ http://localhost:8787) |
+| Typecheck app | `npx tsc --noEmit` |
+| Typecheck backend | `cd server && npm run typecheck` |
 | Lint | `npm run lint` |
-| Bundle de contrôle | `npx expo export --platform android --output-dir /tmp/x` |
+| Bundle de contrôle | `npx expo export --platform ios --output-dir /tmp/x` |
+| Déployer le backend | `cd server && npx wrangler deploy` (voir `server/DEPLOY.md`) |
 
 ## Expo
 
