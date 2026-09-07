@@ -39,7 +39,11 @@ export function registerRealtimeRoutes(app: Hono<AppEnv>) {
     }
 
     const role = row.creator_id === session.user.id ? 'creator' : 'participant';
-    const ticket = await mintTicket(c.env.BETTER_AUTH_SECRET, { sid: id, uid: session.user.id, role });
+    const ticket = await mintTicket(c.env.BETTER_AUTH_SECRET, {
+      sub: session.user.id,
+      scope: `s:${id}`,
+      role,
+    });
     const wsBase = c.env.BETTER_AUTH_URL.replace(/^http/, 'ws').replace(/\/$/, '');
     return c.json({ ticket, wsUrl: `${wsBase}/api/rt/${id}` });
   });
@@ -49,13 +53,14 @@ export function registerRealtimeRoutes(app: Hono<AppEnv>) {
     if (c.req.header('Upgrade') !== 'websocket') {
       return c.text('expected websocket', 426);
     }
+    const id = c.req.param('id');
     const claims = await verifyTicket(c.env.BETTER_AUTH_SECRET, c.req.query('ticket'));
-    if (!claims || claims.sid !== c.req.param('id')) {
+    if (!claims || claims.scope !== `s:${id}`) {
       return c.text('unauthorized', 401);
     }
-    const stub = c.env.SESSION_ROOM.get(c.env.SESSION_ROOM.idFromName(claims.sid));
+    const stub = c.env.SESSION_ROOM.get(c.env.SESSION_ROOM.idFromName(id));
     const doReq = new Request(
-      `https://room/connect?uid=${encodeURIComponent(claims.uid)}&role=${claims.role}`,
+      `https://room/connect?uid=${encodeURIComponent(claims.sub)}&role=${claims.role}`,
       c.req.raw,
     );
     return stub.fetch(doReq);

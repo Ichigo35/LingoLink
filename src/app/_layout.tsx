@@ -13,7 +13,9 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ConversationInviteModal } from '@/components/conversation-invite-modal';
 import { extractJoinToken } from '@/config/session';
+import { useAppRealtime } from '@/hooks/use-app-realtime';
 import { useAuth } from '@/hooks/use-auth';
 import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
 import { usePendingJoinStore } from '@/stores/pending-join-store';
@@ -65,6 +67,8 @@ function useAuthRouting() {
 function RootNavigator() {
   const theme = useTheme();
   const { isLoading } = useAuthRouting();
+  const { isAuthenticated } = useAuth();
+  useAppRealtime(isAuthenticated);
 
   if (isLoading) {
     return (
@@ -81,34 +85,34 @@ function RootNavigator() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '600' },
-      }}>
-      <Stack.Screen name="welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="new-conversation"
-        options={{ title: 'Nouvelle conversation', presentation: 'modal' }}
-      />
-      <Stack.Screen
-        name="session/host"
-        options={{ title: 'Inviter', presentation: 'modal' }}
-      />
-      <Stack.Screen name="scan" options={{ title: 'Scanner un QR' }} />
-      <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
-      <Stack.Screen name="contacts" options={{ title: 'Mes contacts' }} />
-      <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />
-      <Stack.Screen name="profile" options={{ title: 'Profil' }} />
-      <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
-      <Stack.Screen name="ai-test" options={{ title: 'Test IA' }} />
-      <Stack.Screen
-        name="conversation/[id]"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-    </Stack>
+    <>
+      <Stack
+        screenOptions={{
+          headerShadowVisible: false,
+          headerTitleStyle: { fontWeight: '600' },
+        }}>
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="new-conversation"
+          options={{ title: 'Nouvelle conversation', presentation: 'modal' }}
+        />
+        <Stack.Screen name="session/host" options={{ title: 'Inviter', presentation: 'modal' }} />
+        <Stack.Screen name="scan" options={{ title: 'Scanner un QR' }} />
+        <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
+        <Stack.Screen name="contacts" options={{ title: 'Mes contacts' }} />
+        <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />
+        <Stack.Screen name="profile" options={{ title: 'Profil' }} />
+        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
+        <Stack.Screen name="ai-test" options={{ title: 'Test IA' }} />
+        <Stack.Screen
+          name="conversation/[id]"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+      </Stack>
+      <ConversationInviteModal />
+    </>
   );
 }
 

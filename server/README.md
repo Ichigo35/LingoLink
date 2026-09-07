@@ -18,7 +18,10 @@ parle jamais directement à Neon ni à Gemini.
   transcription + traduction **streamées** vers la room DO (`message` /
   `message_update`). Modèle `gemini-3.5-flash`. Migration `0003_messages.sql`.
 - ✅ **Phase 7** — Lien d'invitation : `GET /api/sessions/lookup` (aperçu public).
-  Deep link `lingolink://join/<token>` côté app.
+- ✅ **Phase 8** — Contacts : `src/contacts.ts` (`/api/users/search`,
+  `/api/contacts*`, `/api/presence/ping`), Durable Object `UserInbox`
+  (`src/user-inbox.ts`, `src/inbox.ts`) pour les invitations temps réel.
+  Migration `0004_contacts.sql`. Tickets HMAC : champ `scope` (`s:<id>` \| `inbox`).
 
 ## Stack
 
@@ -47,6 +50,13 @@ parle jamais directement à Neon ni à Gemini.
 | `POST /api/ai/translate` | `{text, sourceLanguage, targetLanguage}` → `{translation}` |
 | `GET /api/sessions/:id/messages` | historique récent |
 | `POST /api/sessions/:id/messages` | `{audioBase64, mimeType, clientId}` → crée le message, streame transcription+traduction vers la room, renvoie le message final |
+| `POST /api/presence/ping` | heartbeat de présence |
+| `GET /api/users/search?q=` | recherche par username (≥ 3 car.) |
+| `GET \| DELETE /api/contacts` \| `/api/contacts/:id` | liste (avec `isOnline`) / suppression |
+| `GET \| POST /api/contacts/requests` | demandes reçues / envoyer `{username}` |
+| `POST /api/contacts/requests/:id/accept \| /decline` | répondre |
+| `POST /api/contacts/:id/conversation` | démarrage rapide → session + invitation inbox |
+| `POST /api/inbox/ticket` → `GET /api/inbox/rt?ticket=` | WebSocket boîte de réception (`UserInbox`) |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
 
 ### Évènements WebSocket (serveur → client)

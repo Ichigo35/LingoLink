@@ -1,14 +1,17 @@
 /**
  * Tickets courts (60 s) signés HMAC-SHA256 pour l'authentification des
- * connexions WebSocket temps réel : l'app ne peut pas facilement envoyer le
- * cookie de session lors de l'upgrade WS, elle obtient donc d'abord un ticket
- * via un endpoint HTTP authentifié.
+ * connexions WebSocket : le cookie de session ne peut pas être envoyé
+ * simplement lors de l'upgrade WS, l'app obtient donc d'abord un ticket via un
+ * endpoint HTTP authentifié.
+ *
+ * `scope` restreint l'usage : `s:<sessionId>` (room de conversation) ou `inbox`
+ * (boîte de réception personnelle).
  */
 
-export interface RealtimeClaims {
-  sid: string; // session id
-  uid: string; // user id
-  role: 'creator' | 'participant';
+export interface Ticket {
+  sub: string; // user id
+  scope: string; // 's:<sessionId>' | 'inbox'
+  role?: 'creator' | 'participant';
   exp: number; // epoch seconds
 }
 
@@ -39,9 +42,9 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
 
 export async function mintTicket(
   secret: string,
-  claims: Omit<RealtimeClaims, 'exp'>,
+  claims: Omit<Ticket, 'exp'>,
 ): Promise<string> {
-  const full: RealtimeClaims = { ...claims, exp: Math.floor(Date.now() / 1000) + TICKET_TTL_SECONDS };
+  const full: Ticket = { ...claims, exp: Math.floor(Date.now() / 1000) + TICKET_TTL_SECONDS };
   const payload = b64urlEncode(new TextEncoder().encode(JSON.stringify(full)));
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(payload));
   return `${payload}.${b64urlEncode(sig)}`;
@@ -50,7 +53,7 @@ export async function mintTicket(
 export async function verifyTicket(
   secret: string,
   ticket: string | undefined | null,
-): Promise<RealtimeClaims | null> {
+): Promise<Ticket | null> {
   if (!ticket || !ticket.includes('.')) return null;
   const [payload, sig] = ticket.split('.');
   try {
@@ -61,7 +64,7 @@ export async function verifyTicket(
       new TextEncoder().encode(payload),
     );
     if (!ok) return null;
-    const claims = JSON.parse(new TextDecoder().decode(b64urlDecode(payload))) as RealtimeClaims;
+    const claims = JSON.parse(new TextDecoder().decode(b64urlDecode(payload))) as Ticket;
     if (typeof claims.exp !== 'number' || claims.exp < Math.floor(Date.now() / 1000)) return null;
     return claims;
   } catch {

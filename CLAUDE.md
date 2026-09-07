@@ -135,7 +135,18 @@ Ne jamais coder une langue en dur ailleurs.
   Compatible Universal Links / App Links plus tard : `extractJoinToken` +
   `useDeepLinkCapture` parsent n'importe quelle URL contenant `/join/<token>` ;
   il suffira d'ajouter le domaine dans `app.json` + fichiers AASA/assetlinks.
-- Phases 8→10 : contacts, proximité, polish.
+- ✅ **Phase 8** — Contacts : tables `contacts` / `contact_requests` /
+  `user_presence` (migration 0004). Recherche username, demandes
+  (envoyer/accepter/refuser, auto-accept si demande inverse), liste avec
+  présence (heartbeat 30 s), suppression, **démarrage rapide** d'une conversation
+  (crée la session + pousse une invitation temps réel).
+  Nouveau **Durable Object `UserInbox`** (1 par user) : boîte de réception WS
+  pour les invitations (réutilisé Phase 9). Tickets HMAC généralisés (`scope`).
+  App : `services/contacts` + `services/inbox`, `useAppRealtime` (monté dans
+  `_layout` : heartbeat + inbox), modale globale « X souhaite démarrer une
+  conversation », `contacts.tsx` réécrit. Contacts = compte requis (username).
+  Testé de bout en bout.
+- Phases 9→10 : proximité, polish. Puis **build APK en local**.
 
 ## Commandes
 

@@ -45,6 +45,23 @@ export interface Database {
     created_at: Date;
     updated_at: Date;
   };
+  contact_requests: {
+    id: string;
+    from_user: string;
+    to_user: string;
+    status: string;
+    created_at: Date;
+    updated_at: Date;
+  };
+  contacts: {
+    user_id: string;
+    contact_id: string;
+    created_at: Date;
+  };
+  user_presence: {
+    user_id: string;
+    last_seen_at: Date;
+  };
 }
 
 export function createDialect(env: Env): PostgresDialect {

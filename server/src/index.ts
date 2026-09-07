@@ -4,14 +4,17 @@ import { Kysely } from 'kysely';
 
 import { registerAiRoutes } from './ai';
 import { createAuth } from './auth';
+import { registerContactRoutes } from './contacts';
 import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
 import { hasGoogleOAuth } from './env';
+import { registerInboxRoutes } from './inbox';
 import { registerMessageRoutes } from './messages';
 import { registerRealtimeRoutes } from './realtime';
 import { registerSessionRoutes } from './sessions';
 
 export { SessionRoom } from './session-room';
+export { UserInbox } from './user-inbox';
 
 const app = new Hono<AppEnv>();
 
@@ -58,6 +61,8 @@ registerSessionRoutes(app);
 registerRealtimeRoutes(app);
 registerAiRoutes(app);
 registerMessageRoutes(app);
+registerInboxRoutes(app);
+registerContactRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

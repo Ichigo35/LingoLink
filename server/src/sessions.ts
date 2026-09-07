@@ -7,6 +7,7 @@ import type { AppEnv } from './context';
 import type { Database } from './db';
 import { isLanguageCode } from './languages';
 import { notifyRoom } from './realtime';
+import { formatShortCode, normalizeShortCode, randomShortCode, randomToken } from './tokens';
 
 type AppContext = Context<AppEnv>;
 
@@ -14,33 +15,8 @@ const DEFAULT_TTL_SECONDS = 600;
 const MIN_TTL_SECONDS = 60;
 const MAX_TTL_SECONDS = 3600;
 const CONNECTION_METHODS = ['qr', 'link', 'contact', 'nearby'];
-const SHORT_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-function base64url(bytes: Uint8Array): string {
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function randomToken(): string {
-  return base64url(crypto.getRandomValues(new Uint8Array(32)));
-}
-
-function randomShortCode(): string {
-  const buf = crypto.getRandomValues(new Uint8Array(8));
-  let out = '';
-  for (const b of buf) out += SHORT_CODE_ALPHABET[b % SHORT_CODE_ALPHABET.length];
-  return out;
-}
-
-function normalizeShortCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-/** "ABCD1234" -> "ABCD-1234" pour l'affichage. */
-export function formatShortCode(code: string): string {
-  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
-}
+export { formatShortCode };
 
 async function requireUser(c: AppContext): Promise<{ id: string } | null> {
   const session = await c.get('auth').api.getSession({ headers: c.req.raw.headers });

@@ -3,6 +3,8 @@ export interface Env {
   DATABASE_URL: string;
   /** Durable Object : une "room" temps réel par session de conversation. */
   SESSION_ROOM: DurableObjectNamespace;
+  /** Durable Object : une boîte de réception temps réel par utilisateur. */
+  USER_INBOX: DurableObjectNamespace;
   /** Secret de signature des sessions Better Auth. */
   BETTER_AUTH_SECRET: string;
   /** URL publique du backend (baseURL Better Auth). */
