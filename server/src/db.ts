@@ -62,6 +62,18 @@ export interface Database {
     user_id: string;
     last_seen_at: Date;
   };
+  nearby_presence: {
+    user_id: string;
+    lat: number;
+    lng: number;
+    updated_at: Date;
+    expires_at: Date;
+  };
+  nearby_requests: {
+    from_user: string;
+    to_user: string;
+    created_at: Date;
+  };
 }
 
 export function createDialect(env: Env): PostgresDialect {

@@ -10,6 +10,7 @@ import { type Database, createDialect } from './db';
 import { hasGoogleOAuth } from './env';
 import { registerInboxRoutes } from './inbox';
 import { registerMessageRoutes } from './messages';
+import { registerNearbyRoutes } from './nearby';
 import { registerRealtimeRoutes } from './realtime';
 import { registerSessionRoutes } from './sessions';
 
@@ -63,6 +64,7 @@ registerAiRoutes(app);
 registerMessageRoutes(app);
 registerInboxRoutes(app);
 registerContactRoutes(app);
+registerNearbyRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

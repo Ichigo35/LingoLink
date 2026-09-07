@@ -146,7 +146,18 @@ Ne jamais coder une langue en dur ailleurs.
   `_layout` : heartbeat + inbox), modale globale « X souhaite démarrer une
   conversation », `contacts.tsx` réécrit. Contacts = compte requis (username).
   Testé de bout en bout.
-- Phases 9→10 : proximité, polish. Puis **build APK en local**.
+- ✅ **Phase 9** — Personnes à proximité : tables `nearby_presence` /
+  `nearby_requests` (migration 0005). Visibilité **opt-in** (`POST/DELETE
+  /api/nearby/visible`), coordonnées **arrondies ~110 m** avant stockage, TTL 5 min.
+  `GET /api/nearby` → liste avec **distance en bucket** (20/50/100/200/500 m),
+  jamais de coordonnées. `POST /api/nearby/:id/request` → session + invitation
+  inbox, anti-spam (1 demande / paire / 2 min), cible doit être visible.
+  Helper partagé `createConversationInvite` (`src/invites.ts`, utilisé aussi par
+  les contacts). App : `services/nearby`, `nearby.tsx` (toggle visible,
+  `expo-location`, liste, Se connecter) — invisible dès qu'on quitte l'écran.
+  Testé de bout en bout. **Les 4 méthodes de connexion sont faites.**
+- Phase 10 : polish (loading, erreurs, reconnexion, dark mode, i18n, tests).
+  Puis **build APK en local**.
 
 ## Commandes
 

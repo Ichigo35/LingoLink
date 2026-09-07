@@ -18,10 +18,12 @@ parle jamais directement à Neon ni à Gemini.
   transcription + traduction **streamées** vers la room DO (`message` /
   `message_update`). Modèle `gemini-3.5-flash`. Migration `0003_messages.sql`.
 - ✅ **Phase 7** — Lien d'invitation : `GET /api/sessions/lookup` (aperçu public).
-- ✅ **Phase 8** — Contacts : `src/contacts.ts` (`/api/users/search`,
-  `/api/contacts*`, `/api/presence/ping`), Durable Object `UserInbox`
+- ✅ **Phase 8** — Contacts : `src/contacts.ts`, Durable Object `UserInbox`
   (`src/user-inbox.ts`, `src/inbox.ts`) pour les invitations temps réel.
-  Migration `0004_contacts.sql`. Tickets HMAC : champ `scope` (`s:<id>` \| `inbox`).
+  Migration `0004_contacts.sql`. Tickets HMAC : champ `scope`.
+- ✅ **Phase 9** — Proximité : `src/nearby.ts` (`/api/nearby*`), coords arrondies,
+  distance en bucket, anti-spam. `src/invites.ts` = helper partagé
+  `createConversationInvite`. Migration `0005_nearby.sql`.
 
 ## Stack
 
@@ -57,6 +59,9 @@ parle jamais directement à Neon ni à Gemini.
 | `POST /api/contacts/requests/:id/accept \| /decline` | répondre |
 | `POST /api/contacts/:id/conversation` | démarrage rapide → session + invitation inbox |
 | `POST /api/inbox/ticket` → `GET /api/inbox/rt?ticket=` | WebSocket boîte de réception (`UserInbox`) |
+| `POST \| DELETE /api/nearby/visible` | opt-in / opt-out visibilité proximité (`{lat,lng}`, coords arrondies) |
+| `GET /api/nearby?lat=&lng=` | personnes visibles autour (distance en bucket, jamais de coords) |
+| `POST /api/nearby/:profileId/request` | demander une conversation (anti-spam 2 min) |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
 
 ### Évènements WebSocket (serveur → client)

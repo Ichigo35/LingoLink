@@ -5,11 +5,10 @@ import { type Kysely, sql } from 'kysely';
 import type { AppEnv } from './context';
 import type { Database } from './db';
 import { notifyUser } from './inbox';
+import { createConversationInvite } from './invites';
 import { isLanguageCode } from './languages';
-import { randomShortCode, randomToken } from './tokens';
 
 const ONLINE_WINDOW = "interval '90 seconds'";
-const SESSION_TTL_SECONDS = 900;
 
 interface Profile {
   id: string;
@@ -289,37 +288,14 @@ export function registerContactRoutes(app: Hono<AppEnv>) {
       return c.json({ code: 'same_language', message: 'Vous parlez la même langue' }, 400);
     }
 
-    const sessionId = rand();
-    const token = randomToken();
-    const now = new Date();
-    await db
-      .insertInto('conversation_sessions')
-      .values({
-        id: sessionId,
-        creator_id: user.id,
-        participant_id: null,
-        creator_language: myLang,
-        participant_language: otherLang,
-        method: 'contact',
-        status: 'waiting',
-        connection_token: token,
-        short_code: randomShortCode(),
-        expires_at: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
-        created_at: now,
-        activated_at: null,
-        ended_at: null,
-      })
-      .execute();
-
-    void notifyUser(c.env, other, {
-      type: 'conversation_invite',
-      sessionId,
-      connectionToken: token,
-      from: profileFrom(meRow!),
-      creatorLanguage: myLang,
-      participantLanguage: otherLang,
+    const p = profileFrom(meRow!);
+    const { sessionId } = await createConversationInvite(c.env, db, {
+      from: { id: user.id, username: p.username, displayName: p.displayName, preferredLanguage: p.preferredLanguage },
+      toId: other,
+      fromLanguage: myLang,
+      toLanguage: otherLang,
+      method: 'contact',
     });
-
     return c.json({ sessionId });
   });
 }

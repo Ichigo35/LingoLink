@@ -49,6 +49,12 @@
         {
           "microphonePermission": "Lingo Link utilise le micro pour transcrire et traduire ce que vous dites."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Lingo Link utilise votre position approximative uniquement quand vous choisissez d'être visible pour les personnes à proximité."
+        }
       ]
     ],
     "experiments": {
