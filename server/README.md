@@ -12,9 +12,11 @@ parle jamais directement à Neon ni à Gemini.
   `conversation_sessions` mais inerte sur Neon (BYPASSRLS hérité).
 - ✅ **Phase 4** — Temps réel : Durable Object `SessionRoom` (`src/session-room.ts`),
   auth par ticket HMAC (`src/tickets.ts`), routes `src/realtime.ts`.
-- ✅ **Phase 5** — Proxy Gemini : `src/gemini.ts` (client REST + retry),
-  `src/ai.ts` (`TranslationProvider` abstrait + `GeminiProvider`, routes
-  `/api/ai/*`). Clé Gemini uniquement côté Worker.
+- ✅ **Phase 5** — Proxy Gemini : `src/gemini.ts` (client REST + streaming + retry),
+  `src/ai.ts` (`TranslationProvider` abstrait + `GeminiProvider`, routes `/api/ai/*`).
+- ✅ **Phase 6** — Conversation : `src/messages.ts` (`/api/sessions/:id/messages`),
+  transcription + traduction **streamées** vers la room DO (`message` /
+  `message_update`). Modèle `gemini-3.5-flash`. Migration `0003_messages.sql`.
 
 ## Stack
 
@@ -38,18 +40,20 @@ parle jamais directement à Neon ni à Gemini.
 | `POST /api/sessions/:id/end` | terminer (créateur uniquement) |
 | `POST /api/sessions/:id/realtime-ticket` | ticket HMAC court + `wsUrl` |
 | `GET /api/rt/:id?ticket=` | upgrade WebSocket → Durable Object `SessionRoom` |
-| `POST /api/ai/process` | `{audioBase64, mimeType, sourceLanguage, targetLanguage}` → `{transcript, translation}` |
-| `POST /api/ai/transcribe` | `{audioBase64, mimeType, language}` → `{transcript}` |
+| `POST /api/ai/process` | `{audioBase64, mimeType, sourceLanguage, targetLanguage}` → `{transcript, translation}` (écran de test dev) |
 | `POST /api/ai/translate` | `{text, sourceLanguage, targetLanguage}` → `{translation}` |
+| `GET /api/sessions/:id/messages` | historique récent |
+| `POST /api/sessions/:id/messages` | `{audioBase64, mimeType, clientId}` → crée le message, streame transcription+traduction vers la room, renvoie le message final |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
 
 ### Évènements WebSocket (serveur → client)
 
 - `{ type: 'presence', participants: [{ id, role, online }] }`
 - `{ type: 'session_status', session: <dto> }` (poussé sur join / leave / end)
-- `{ type: 'message' | 'message_update', message }` (relais pair-à-pair, Phase 6)
+- `{ type: 'message', message }` (nouveau message, statut `processing`)
+- `{ type: 'message_update', message }` (transcription/traduction progressive → `completed`/`failed`)
 
-Client → serveur : `{ type: 'ping' }`, `{ type: 'message' | 'message_update', message }`.
+Client → serveur : `{ type: 'ping' }`.
 
 ## Secrets (`.dev.vars` en local — gitignored ; `wrangler secret put` en prod)
 

@@ -80,7 +80,10 @@ function RootNavigator() {
       <Stack.Screen name="profile" options={{ title: 'Profil' }} />
       <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
       <Stack.Screen name="ai-test" options={{ title: 'Test IA' }} />
-      <Stack.Screen name="conversation/[id]" options={{ title: 'Conversation' }} />
+      <Stack.Screen
+        name="conversation/[id]"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
     </Stack>
   );
 }

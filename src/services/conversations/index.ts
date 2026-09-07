@@ -4,10 +4,20 @@
  * cookie de session Better Auth.
  */
 
+import * as FileSystem from 'expo-file-system/legacy';
+
 import type { LanguageCode } from '@/config/languages';
 import { apiRequest } from '@/lib/api-client';
 import { authClient } from '@/lib/auth-client';
-import type { ConnectionMethod, ConversationSession } from '@/types';
+import type { ConnectionMethod, ConversationMessage, ConversationSession } from '@/types';
+
+function mimeForUri(uri: string): string {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  if (ext === 'wav') return 'audio/wav';
+  if (ext === 'caf') return 'audio/x-caf';
+  if (ext === 'aac') return 'audio/aac';
+  return 'audio/mp4';
+}
 
 async function authHeader(): Promise<string | null> {
   return (await authClient.getCookie()) ?? null;
@@ -74,5 +84,32 @@ export const conversationsService = {
       { method: 'POST', cookie: await authHeader() },
     );
     return session;
+  },
+
+  async listMessages(sessionId: string): Promise<ConversationMessage[]> {
+    const { messages } = await apiRequest<{ messages: ConversationMessage[] }>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
+      { cookie: await authHeader() },
+    );
+    return messages;
+  },
+
+  /** Envoie un segment audio ; la transcription/traduction est streamée via le temps réel. */
+  async sendVoiceMessage(
+    sessionId: string,
+    audioUri: string,
+    clientId: string,
+  ): Promise<ConversationMessage> {
+    const audioBase64 = await FileSystem.readAsStringAsync(audioUri, { encoding: 'base64' });
+    const { message } = await apiRequest<{ message: ConversationMessage }>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
+      {
+        method: 'POST',
+        cookie: await authHeader(),
+        timeoutMs: 45_000,
+        body: { audioBase64, mimeType: mimeForUri(audioUri), clientId },
+      },
+    );
+    return message;
   },
 };

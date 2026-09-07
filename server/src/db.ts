@@ -32,6 +32,19 @@ export interface Database {
     activated_at: Date | null;
     ended_at: Date | null;
   };
+  conversation_messages: {
+    id: string;
+    session_id: string;
+    sender_id: string;
+    source_language: string;
+    target_language: string;
+    original_transcript: string;
+    translated_text: string;
+    status: string;
+    client_id: string | null;
+    created_at: Date;
+    updated_at: Date;
+  };
 }
 
 export function createDialect(env: Env): PostgresDialect {

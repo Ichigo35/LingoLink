@@ -11,7 +11,7 @@
 
 import { apiRequest } from '@/lib/api-client';
 import { authClient } from '@/lib/auth-client';
-import type { ConversationSession } from '@/types';
+import type { ConversationMessage, ConversationSession } from '@/types';
 
 export interface PresenceParticipant {
   id: string;
@@ -23,13 +23,10 @@ export type RealtimeEvent =
   | { type: 'connection'; connected: boolean }
   | { type: 'presence'; participants: PresenceParticipant[] }
   | { type: 'session_status'; session: ConversationSession }
-  | { type: 'message'; message: unknown }
-  | { type: 'message_update'; message: unknown };
+  | { type: 'message'; message: ConversationMessage }
+  | { type: 'message_update'; message: ConversationMessage };
 
-export type OutgoingEvent =
-  | { type: 'message'; message: unknown }
-  | { type: 'message_update'; message: unknown }
-  | { type: 'ping' };
+export type OutgoingEvent = { type: 'ping' };
 
 export type RealtimeListener = (event: RealtimeEvent) => void;
 

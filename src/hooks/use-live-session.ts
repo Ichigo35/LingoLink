@@ -3,68 +3,95 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import {
-  type OutgoingEvent,
   type PresenceParticipant,
   type RealtimeChannel,
   createRealtimeChannel,
 } from '@/services/realtime';
 import { useSessionStore } from '@/stores/session-store';
-import type { ConversationSession } from '@/types';
+import type { ConversationMessage, ConversationSession } from '@/types';
 
 interface LiveSession {
   session: ConversationSession | null;
   participants: PresenceParticipant[];
+  messages: ConversationMessage[];
   /** true si l'autre personne est connectée en temps réel. */
   peerOnline: boolean;
   connected: boolean;
   loading: boolean;
   error: string | null;
-  send: (event: OutgoingEvent) => void;
 }
 
 interface LiveState {
   sid: string;
   participants: PresenceParticipant[];
+  messages: Record<string, ConversationMessage>;
   connected: boolean;
   error: string | null;
 }
 
 const FALLBACK_POLL_MS = 15_000;
-const EMPTY: LiveState = { sid: '', participants: [], connected: false, error: null };
+const EMPTY: LiveState = { sid: '', participants: [], messages: {}, connected: false, error: null };
 
 /**
- * Charge une session (snapshot HTTP) puis la maintient à jour en temps réel via
- * le Durable Object : présence, changements de statut, fin de conversation.
+ * État complet d'une conversation en temps réel : session, présence, messages
+ * (transcription/traduction progressive via le Durable Object). Snapshot HTTP
+ * initial + fusion des évènements ; poll de secours si le WebSocket est coupé.
  */
 export function useLiveSession(sessionId: string | undefined, selfUserId?: string): LiveSession {
   const { session, setSession } = useSessionStore();
-  // État rattaché à un `sid` : évite tout reset synchrone dans l'effet.
   const [state, setState] = useState<LiveState>(EMPTY);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!sessionId) return;
     let cancelled = false;
-    const patch = (p: Partial<LiveState>) =>
-      setState((prev) => ({ ...(prev.sid === sessionId ? prev : EMPTY), sid: sessionId, ...p }));
+    const patch = (fn: (prev: LiveState) => Partial<LiveState>) =>
+      setState((prev) => {
+        const base = prev.sid === sessionId ? prev : { ...EMPTY, sid: sessionId };
+        return { ...base, ...fn(base) };
+      });
 
     conversationsService
       .getSession(sessionId)
       .then((s) => !cancelled && setSession(s))
       .catch((e) => {
         if (!cancelled) {
-          patch({ error: e instanceof ApiRequestError ? e.message : 'Erreur de chargement' });
+          patch(() => ({
+            error: e instanceof ApiRequestError ? e.message : 'Erreur de chargement',
+          }));
         }
       });
+
+    conversationsService
+      .listMessages(sessionId)
+      .then((list) => {
+        if (cancelled) return;
+        patch((base) => ({
+          messages: { ...base.messages, ...Object.fromEntries(list.map((m) => [m.id, m])) },
+        }));
+      })
+      .catch(() => {});
 
     const channel = createRealtimeChannel(sessionId);
     channelRef.current = channel;
 
     const unsub = channel.subscribe((event) => {
       if (cancelled) return;
-      if (event.type === 'connection') patch({ connected: event.connected });
-      else if (event.type === 'presence') patch({ participants: event.participants });
-      else if (event.type === 'session_status') setSession(event.session);
+      switch (event.type) {
+        case 'connection':
+          patch(() => ({ connected: event.connected }));
+          break;
+        case 'presence':
+          patch(() => ({ participants: event.participants }));
+          break;
+        case 'session_status':
+          setSession(event.session);
+          break;
+        case 'message':
+        case 'message_update':
+          patch((base) => ({ messages: { ...base.messages, [event.message.id]: event.message } }));
+          break;
+      }
     });
 
     const poll = setInterval(() => {
@@ -72,6 +99,15 @@ export function useLiveSession(sessionId: string | undefined, selfUserId?: strin
       conversationsService
         .getSession(sessionId)
         .then((s) => !cancelled && setSession(s))
+        .catch(() => {});
+      conversationsService
+        .listMessages(sessionId)
+        .then((list) => {
+          if (cancelled) return;
+          patch((base) => ({
+            messages: { ...base.messages, ...Object.fromEntries(list.map((m) => [m.id, m])) },
+          }));
+        })
         .catch(() => {});
     }, FALLBACK_POLL_MS);
 
@@ -87,6 +123,14 @@ export function useLiveSession(sessionId: string | undefined, selfUserId?: strin
   const current = session?.id === sessionId ? session : null;
   const scoped = state.sid === sessionId ? state : EMPTY;
 
+  const messages = useMemo(
+    () =>
+      Object.values(scoped.messages).sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      ),
+    [scoped.messages],
+  );
+
   const peerOnline = useMemo(() => {
     if (!selfUserId) return scoped.participants.length > 1;
     return scoped.participants.some((p) => p.id !== selfUserId && p.online);
@@ -95,10 +139,10 @@ export function useLiveSession(sessionId: string | undefined, selfUserId?: strin
   return {
     session: current,
     participants: scoped.participants,
+    messages,
     peerOnline,
     connected: scoped.connected,
     loading: !current && !scoped.error,
     error: scoped.error,
-    send: (event) => channelRef.current?.send(event),
   };
 }

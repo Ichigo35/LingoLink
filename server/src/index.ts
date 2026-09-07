@@ -7,6 +7,7 @@ import { createAuth } from './auth';
 import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
 import { hasGoogleOAuth } from './env';
+import { registerMessageRoutes } from './messages';
 import { registerRealtimeRoutes } from './realtime';
 import { registerSessionRoutes } from './sessions';
 
@@ -56,6 +57,7 @@ app.get('/api/profile/username-available', async (c) => {
 registerSessionRoutes(app);
 registerRealtimeRoutes(app);
 registerAiRoutes(app);
+registerMessageRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

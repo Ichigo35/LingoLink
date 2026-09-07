@@ -73,6 +73,8 @@ export interface ConversationMessage {
   originalTranscript: string;
   translatedText: string;
   status: MessageStatus;
+  /** Id local optionnel, pour réconcilier la bulle optimiste de l'émetteur. */
+  clientId: string | null;
   createdAt: ISODateString;
 }
 

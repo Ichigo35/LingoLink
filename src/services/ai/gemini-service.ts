@@ -13,7 +13,6 @@ import type {
   ProcessSpeechHandle,
   ProcessSpeechInput,
   ProcessSpeechUpdate,
-  TranscriptionResult,
   TranslationResult,
 } from './types';
 
@@ -45,21 +44,6 @@ async function cookie(): Promise<string | null> {
 }
 
 export class GeminiAIService implements AITranslationService {
-  async transcribeAudio(input: {
-    audioUri: string;
-    language: ProcessSpeechInput['sourceLanguage'];
-    sessionId: string;
-  }): Promise<TranscriptionResult> {
-    const audioBase64 = await readAudioBase64(input.audioUri);
-    const res = await apiRequest<{ transcript: string }>('/api/ai/transcribe', {
-      method: 'POST',
-      cookie: await cookie(),
-      timeoutMs: 45_000,
-      body: { audioBase64, mimeType: mimeForUri(input.audioUri), language: input.language },
-    });
-    return { text: res.transcript, isPartial: false };
-  }
-
   async translateText(input: {
     text: string;
     sourceLanguage: ProcessSpeechInput['sourceLanguage'];

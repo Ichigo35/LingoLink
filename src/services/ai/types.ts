@@ -47,12 +47,6 @@ export interface ProcessSpeechHandle {
 }
 
 export interface AITranslationService {
-  transcribeAudio(input: {
-    audioUri: string;
-    language: LanguageCode;
-    sessionId: string;
-  }): Promise<TranscriptionResult>;
-
   translateText(input: {
     text: string;
     sourceLanguage: LanguageCode;

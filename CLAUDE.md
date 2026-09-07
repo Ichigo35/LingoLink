@@ -113,8 +113,20 @@ Ne jamais coder une langue en dur ailleurs.
   (expo-audio, push-to-talk), écran dev **Réglages → Test du pipeline IA**.
   Testé : fr→en, fr→lo, en→lo, transcribe seul, cas d'erreur. Latence ~4 s /
   phrase courte.
-- Phases 6→10 : conversation complète (micro→IA→temps réel→autre tel),
-  lien d'invitation, contacts, proximité, polish.
+- ✅ **Phase 6** — Conversation complète : boucle micro → Gemini → temps réel →
+  autre téléphone. Table `conversation_messages` (migration 0003).
+  `POST /api/sessions/:id/messages` : insère le message, **streame** la
+  transcription + traduction (Gemini `streamGenerateContent`, délimiteur `|||`)
+  et diffuse `message` / `message_update` (partial → completed) via le Durable
+  Object. `GET .../messages` pour le snapshot.
+  App : `conversation/[id]` réécrit (bulles §7, Push-to-Talk, bulle optimiste,
+  états `processing/partial/completed/failed`, auto-scroll). `useLiveSession`
+  gère aussi les messages. `useAudioCapture` enregistre en 16 kHz mono 24 kbps.
+  **Latence** : ~1,4 s Gemini + réseau ; ~3 s en dev local (Mac↔eu-central),
+  attendu ~1,5-2 s en prod. Optimisations : streaming progressif, modèle
+  `gemini-3.5-flash`, requêtes auth+session en parallèle, insert non bloquant,
+  audio compressé. Testé de bout en bout.
+- Phases 7→10 : lien d'invitation, contacts, proximité, polish.
 
 ## Commandes
 
