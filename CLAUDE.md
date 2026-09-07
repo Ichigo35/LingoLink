@@ -85,9 +85,20 @@ Ne jamais coder une langue en dur ailleurs.
   puis ajouter la redirect URI de prod dans la console Google). Tester la
   connexion Google de préférence en dev build (`npx expo run:ios`), pas Expo Go
   (deep-linking).
-- ⏳ Phase 3 — sessions de conversation, token sécurisé, expiration, QR, rejoindre.
-- Phases 4→10 : Realtime, pipeline Gemini, conversation complète,
-  lien d'invitation, contacts, proximité, polish.
+- ✅ **Phase 3** — Sessions : table `conversation_sessions` (Neon, migration
+  0002), endpoints Worker `/api/sessions*` (create / join par token ou code
+  court / get / leave / end), token aléatoire 32o + code court 8 car., TTL 10 min
+  + expiration paresseuse. App : `session/host` (QR + code + compte à rebours +
+  partage lien), `scan` (caméra `expo-camera` + saisie manuelle), `conversation/[id]`
+  (lobby : langues, présence, quitter/terminer, polling 3 s).
+  **Contrôle d'accès : couche Worker** (filtre `creator_id`/`participant_id`).
+  RLS activée sur la table mais inerte sur Neon (rôles héritent de
+  `neon_superuser` BYPASSRLS, `ALTER ROLE NOBYPASSRLS` interdit en gratuit).
+  Testé de bout en bout (10 cas : accès, expiration, jointure, doublons).
+- ⏳ Phase 4 — Supabase Realtime → **Cloudflare Durable Objects** : présence,
+  sync session, remplace le polling.
+- Phases 5→10 : pipeline Gemini, conversation complète, lien d'invitation,
+  contacts, proximité, polish.
 
 ## Commandes
 

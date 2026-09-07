@@ -1,25 +1,78 @@
 /**
- * Service de gestion des sessions de conversation (§11).
- * Implémentation en Phase 3.
+ * Service de gestion des sessions de conversation (§11) — implémentation.
+ * Toutes les requêtes passent par le backend (Cloudflare Worker) avec le
+ * cookie de session Better Auth.
  */
 
-import type { ConnectionMethod, ConversationSession } from '@/types';
 import type { LanguageCode } from '@/config/languages';
+import { apiRequest } from '@/lib/api-client';
+import { authClient } from '@/lib/auth-client';
+import type { ConnectionMethod, ConversationSession } from '@/types';
+
+async function authHeader(): Promise<string | null> {
+  return (await authClient.getCookie()) ?? null;
+}
 
 export interface CreateSessionInput {
   creatorLanguage: LanguageCode;
   participantLanguage: LanguageCode;
-  method: ConnectionMethod;
-  /** Durée de validité du token en secondes (QR/lien temporaires). */
+  method?: ConnectionMethod;
   ttlSeconds?: number;
 }
 
-export interface ConversationsService {
-  createSession(input: CreateSessionInput): Promise<ConversationSession>;
-  joinByToken(token: string): Promise<ConversationSession>;
-  getSession(sessionId: string): Promise<ConversationSession>;
-  leaveSession(sessionId: string): Promise<void>;
-  endSession(sessionId: string): Promise<void>;
+interface SessionResponse {
+  session: ConversationSession;
 }
 
-export const CONVERSATIONS_NOT_IMPLEMENTED = 'conversations_service_phase_3' as const;
+export const conversationsService = {
+  async createSession(input: CreateSessionInput): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>('/api/sessions', {
+      method: 'POST',
+      body: input,
+      cookie: await authHeader(),
+    });
+    return session;
+  },
+
+  async joinByToken(token: string): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>('/api/sessions/join', {
+      method: 'POST',
+      body: { token },
+      cookie: await authHeader(),
+    });
+    return session;
+  },
+
+  async joinByCode(code: string): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>('/api/sessions/join', {
+      method: 'POST',
+      body: { code },
+      cookie: await authHeader(),
+    });
+    return session;
+  },
+
+  async getSession(sessionId: string): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>(
+      `/api/sessions/${encodeURIComponent(sessionId)}`,
+      { cookie: await authHeader() },
+    );
+    return session;
+  },
+
+  async leaveSession(sessionId: string): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/leave`,
+      { method: 'POST', cookie: await authHeader() },
+    );
+    return session;
+  },
+
+  async endSession(sessionId: string): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/end`,
+      { method: 'POST', cookie: await authHeader() },
+    );
+    return session;
+  },
+};

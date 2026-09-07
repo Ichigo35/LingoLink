@@ -31,11 +31,14 @@ export default function NewConversationScreen() {
     setStep('method');
   }
 
-  function chooseMethod(method: ConnectionMethod) {
-    setMethod(method);
-    // Les écrans de connexion réels (génération QR, lien, etc.) arrivent en Phase 3+.
-    // Pour l'instant on redirige vers l'écran placeholder le plus proche.
-    const target = method === 'contact' ? '/contacts' : method === 'nearby' ? '/nearby' : '/scan';
+  function chooseMethod(nextMethod: ConnectionMethod) {
+    setMethod(nextMethod);
+    const target =
+      nextMethod === 'contact'
+        ? '/contacts'
+        : nextMethod === 'nearby'
+          ? '/nearby'
+          : '/session/host'; // 'qr' et 'link' : même écran hôte
     router.push(target);
   }
 

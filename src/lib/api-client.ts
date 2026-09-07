@@ -31,6 +31,8 @@ interface RequestOptions {
   body?: unknown;
   /** Jeton d'accès backend, injecté par la couche auth. */
   accessToken?: string | null;
+  /** Cookie de session Better Auth (obtenu via authClient.getCookie()). */
+  cookie?: string | null;
   signal?: AbortSignal;
   timeoutMs?: number;
 }
@@ -38,7 +40,14 @@ interface RequestOptions {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, accessToken, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const {
+    method = 'GET',
+    body,
+    accessToken,
+    cookie,
+    signal,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  } = options;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -52,8 +61,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       headers: {
         'Content-Type': 'application/json',
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(cookie ? { Cookie: cookie } : {}),
       },
       body: body != null ? JSON.stringify(body) : undefined,
+      credentials: 'omit',
       signal: controller.signal,
     });
 

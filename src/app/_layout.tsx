@@ -70,6 +70,10 @@ function RootNavigator() {
         name="new-conversation"
         options={{ title: 'Nouvelle conversation', presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="session/host"
+        options={{ title: 'Inviter', presentation: 'modal' }}
+      />
       <Stack.Screen name="scan" options={{ title: 'Scanner un QR' }} />
       <Stack.Screen name="contacts" options={{ title: 'Mes contacts' }} />
       <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />

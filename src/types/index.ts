@@ -44,9 +44,14 @@ export interface ConversationSession {
   status: SessionStatus;
   /** Jamais l'ID brut : token aléatoire opaque, validé côté serveur. */
   connectionToken: string;
+  /** Code court formaté "XXXX-XXXX" pour la saisie manuelle. */
+  shortCode: string;
+  /** Deep link de jointure : lingolink://join/<token>. */
+  joinUrl: string;
   method: ConnectionMethod;
   expiresAt: ISODateString | null;
   createdAt: ISODateString;
+  activatedAt: ISODateString | null;
   endedAt: ISODateString | null;
 }
 

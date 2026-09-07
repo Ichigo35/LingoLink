@@ -6,8 +6,11 @@ parle jamais directement à Neon ni à Gemini.
 ## État
 
 - ✅ **Phase 2** — Authentification (Better Auth) : mode invité (anonyme) +
-  Google OAuth (activable), sessions, mise à jour du profil, dispo username.
-- ⏳ Phase 3+ — sessions de conversation, tokens, temps réel (Durable Objects).
+  Google OAuth, sessions, mise à jour du profil, dispo username.
+- ✅ **Phase 3** — Sessions de conversation : `/api/sessions*` (voir table).
+  Contrôle d'accès appliqué côté Worker (`ownSessionQuery`). RLS activée sur
+  `conversation_sessions` mais inerte sur Neon (BYPASSRLS hérité).
+- ⏳ Phase 4 — temps réel (Durable Objects).
 - ⏳ Phase 5 — proxy Gemini (`/api/ai/*`).
 
 ## Stack
@@ -23,6 +26,11 @@ parle jamais directement à Neon ni à Gemini.
 | `GET /api/health` | ping |
 | `GET /api/config` | `{ googleEnabled }` — l'app masque le bouton Google si false |
 | `GET /api/profile/username-available?u=` | disponibilité d'un username |
+| `POST /api/sessions` | crée une session (auth) → token + code court + `joinUrl` |
+| `POST /api/sessions/join` | rejoint via `{token}` ou `{code}` (auth) |
+| `GET /api/sessions/:id` | détail (créateur ou participant) |
+| `POST /api/sessions/:id/leave` | quitter → session `ended` |
+| `POST /api/sessions/:id/end` | terminer (créateur uniquement) |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
 
 ## Secrets (`.dev.vars` en local — gitignored ; `wrangler secret put` en prod)
@@ -39,7 +47,7 @@ Variable publique : `BETTER_AUTH_URL` (dans `wrangler.jsonc`) = URL publique du 
 ## Base de données
 
 - Projet Neon : **LingoLink** (`proud-mountain-72949074`, `aws-eu-central-1`, PG 17)
-- Migrations : `server/migrations/`. `0001_better_auth.sql` déjà appliqué.
+- Migrations : `server/migrations/` (`0001_better_auth.sql`, `0002_sessions.sql`) — déjà appliquées.
 - Régénérer le schéma auth : `npm run auth:generate` (après `set -a && . ./.dev.vars`).
 
 Voir `DEPLOY.md` pour le déploiement.

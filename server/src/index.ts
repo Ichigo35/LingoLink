@@ -1,19 +1,14 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { Kysely } from 'kysely';
 
 import { createAuth } from './auth';
-import { createDialect } from './db';
-import type { Env } from './env';
+import type { AppEnv } from './context';
+import { type Database, createDialect } from './db';
 import { hasGoogleOAuth } from './env';
-import { Kysely } from 'kysely';
-import type { Database } from './db';
+import { registerSessionRoutes } from './sessions';
 
-type Variables = {
-  auth: ReturnType<typeof createAuth>;
-  db: Kysely<Database>;
-};
-
-const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+const app = new Hono<AppEnv>();
 
 app.use(
   '*',
@@ -25,7 +20,7 @@ app.use(
   }),
 );
 
-// Instancie Better Auth + Kysely une fois par requête (contexte Workers).
+// Instancie Better Auth + Kysely par requête (contexte Workers).
 app.use('*', async (c, next) => {
   const dialect = createDialect(c.env);
   c.set('auth', createAuth(c.env, dialect));
@@ -35,11 +30,7 @@ app.use('*', async (c, next) => {
 
 app.get('/api/health', (c) => c.json({ ok: true, service: 'lingolink-api' }));
 
-app.get('/api/config', (c) =>
-  c.json({
-    googleEnabled: hasGoogleOAuth(c.env),
-  }),
-);
+app.get('/api/config', (c) => c.json({ googleEnabled: hasGoogleOAuth(c.env) }));
 
 /** Disponibilité d'un username (3–20 caractères, a-z 0-9 _). */
 app.get('/api/profile/username-available', async (c) => {
@@ -55,6 +46,8 @@ app.get('/api/profile/username-available', async (c) => {
     .executeTakeFirst();
   return c.json({ available: !existing, reason: existing ? ('taken' as const) : null });
 });
+
+registerSessionRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

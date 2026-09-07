@@ -37,7 +37,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Lingo Link utilise la caméra pour scanner le QR code d'une conversation."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
