@@ -5,9 +5,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { useT } from '@/i18n';
 import { authService } from '@/services/auth';
 
 export default function WelcomeScreen() {
+  const t = useT();
   const [busy, setBusy] = useState<null | 'guest' | 'google'>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
@@ -35,14 +37,14 @@ export default function WelcomeScreen() {
       <View style={styles.hero}>
         <ThemedText style={styles.logo}>Lingo Link</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.tagline}>
-          Parlez naturellement.{'\n'}Comprenez-vous instantanément.
+          {t('welcome.tagline')}
         </ThemedText>
       </View>
 
       <View style={styles.actions}>
         {googleEnabled ? (
           <Button
-            label="Continuer avec Google"
+            label={t('welcome.google')}
             icon="G"
             onPress={() => run('google')}
             loading={busy === 'google'}
@@ -50,15 +52,14 @@ export default function WelcomeScreen() {
           />
         ) : null}
         <Button
-          label="Continuer en invité"
+          label={t('welcome.guest')}
           variant={googleEnabled ? 'secondary' : 'primary'}
           onPress={() => run('guest')}
           loading={busy === 'guest'}
           disabled={busy !== null}
         />
         <ThemedText themeColor="textSecondary" style={styles.note}>
-          En invité, vous pouvez rejoindre et tester des conversations. Créez un
-          compte plus tard pour garder vos contacts et votre historique.
+          {t('welcome.note')}
         </ThemedText>
       </View>
     </Screen>

@@ -156,8 +156,12 @@ Ne jamais coder une langue en dur ailleurs.
   les contacts). App : `services/nearby`, `nearby.tsx` (toggle visible,
   `expo-location`, liste, Se connecter) — invisible dès qu'on quitte l'écran.
   Testé de bout en bout. **Les 4 méthodes de connexion sont faites.**
-- Phase 10 : polish (loading, erreurs, reconnexion, dark mode, i18n, tests).
-  Puis **build APK en local**.
+- ✅ **Phase 10** — Polish : `ErrorBoundary` global, bandeau hors-ligne
+  (`expo-network`), i18n fr/en (`src/i18n/`, parcours principal traduit,
+  `useT()` lit `settings-store.uiLanguage`), haptique sur le micro
+  (`expo-haptics`), « Reprendre la conversation » + identité sur l'accueil,
+  couleurs de splash/icône Android au ton de marque, `expo-doctor` 21/21.
+  Le temps réel se reconnecte déjà (backoff) — vérifié.
 
 ## Commandes
 

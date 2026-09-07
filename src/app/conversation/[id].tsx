@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { useAudioCapture } from '@/features/conversation/use-audio-capture';
 import { useAuth } from '@/hooks/use-auth';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import type { ConversationMessage } from '@/types';
@@ -27,6 +29,7 @@ export default function ConversationScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
+  const t = useT();
   const { session, loading, error, connected, peerOnline, messages } = useLiveSession(id, user?.id);
   const capture = useAudioCapture();
 
@@ -55,6 +58,7 @@ export default function ConversationScreen() {
 
   const onRecordStart = useCallback(async () => {
     setMicError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const ok = await capture.start();
     if (!ok) setMicError('Micro non autorisé. Activez-le dans les réglages.');
   }, [capture]);
@@ -77,6 +81,7 @@ export default function ConversationScreen() {
     };
     setPending((p) => [...p, optimistic]);
     setSending(true);
+    Haptics.selectionAsync().catch(() => {});
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
     try {
       await conversationsService.sendVoiceMessage(id, segment.uri, clientId);
@@ -150,12 +155,12 @@ export default function ConversationScreen() {
           />
           <ThemedText style={styles.topbarText}>
             {ended
-              ? 'Terminée'
+              ? t('conv.ended')
               : peerOnline
-                ? 'En ligne'
+                ? t('conv.online')
                 : active
-                  ? 'En attente…'
-                  : 'Connexion…'}
+                  ? t('conv.waiting')
+                  : t('conv.connecting')}
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.rtBadge}>
             {connected ? '● direct' : '○ hors ligne'}
@@ -163,7 +168,7 @@ export default function ConversationScreen() {
         </View>
         <Pressable onPress={confirmLeave} hitSlop={10}>
           <ThemedText style={[styles.leave, { color: theme.danger }]}>
-            {isCreator ? 'Terminer' : 'Quitter'}
+            {isCreator ? t('conv.end') : t('conv.leave')}
           </ThemedText>
         </Pressable>
       </View>
@@ -176,8 +181,8 @@ export default function ConversationScreen() {
         {allMessages.length === 0 ? (
           <ThemedText themeColor="textSecondary" style={styles.empty}>
             {myLang && otherLang
-              ? `${formatLanguage(myLang as LanguageCode)} ↔ ${formatLanguage(otherLang as LanguageCode)}\n\nMaintenez le bouton et parlez.`
-              : 'Maintenez le bouton et parlez.'}
+              ? `${formatLanguage(myLang as LanguageCode)} ↔ ${formatLanguage(otherLang as LanguageCode)}\n\n${t('conv.emptyHint')}`
+              : t('conv.emptyHint')}
           </ThemedText>
         ) : (
           allMessages.map((m) => (
@@ -193,7 +198,7 @@ export default function ConversationScreen() {
       {/* Bouton micro */}
       <View style={styles.micZone}>
         {ended ? (
-          <Button label="Retour à l’accueil" onPress={() => router.replace('/')} />
+          <Button label={t('common.home')} onPress={() => router.replace('/')} />
         ) : (
           <Pressable
             onPressIn={onRecordStart}
@@ -210,12 +215,12 @@ export default function ConversationScreen() {
               <View style={styles.micRow}>
                 <ActivityIndicator color={theme.tintText} />
                 <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
-                  Traduction…
+                  {t('conv.translating')}
                 </ThemedText>
               </View>
             ) : (
               <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
-                {capture.isRecording ? '● Relâchez pour envoyer' : '🎤 Maintenir pour parler'}
+                {capture.isRecording ? t('conv.release') : t('conv.hold')}
               </ThemedText>
             )}
           </Pressable>
@@ -227,6 +232,7 @@ export default function ConversationScreen() {
 
 function MessageBubble({ message, mine }: { message: ConversationMessage; mine: boolean }) {
   const theme = useTheme();
+  const t = useT();
   const processing = message.status === 'processing';
   const failed = message.status === 'failed';
   const src = isLanguageCode(message.sourceLanguage)
@@ -256,7 +262,7 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
           <View style={styles.micRow}>
             <ActivityIndicator size="small" color={mine ? theme.tintText : theme.text} />
             <ThemedText style={{ color: mine ? theme.tintText : theme.textSecondary }}>
-              Écoute…
+              {t('conv.listening')}
             </ThemedText>
           </View>
         ) : (

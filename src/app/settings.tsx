@@ -59,8 +59,8 @@ export default function SettingsScreen() {
           ))}
         </View>
         <ThemedText themeColor="textSecondary" style={styles.note}>
-          La traduction complète de l’interface sera branchée avec le système i18n
-          (Phase 10). Ce réglage est déjà persisté.
+          Le parcours principal (accueil, connexion, conversation) est traduit.
+          Les écrans secondaires suivront.
         </ThemedText>
       </View>
 
