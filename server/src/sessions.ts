@@ -6,6 +6,7 @@ import { type Kysely, sql } from 'kysely';
 import type { AppEnv } from './context';
 import type { Database } from './db';
 import { isLanguageCode } from './languages';
+import { notifyRoom } from './realtime';
 
 type AppContext = Context<AppEnv>;
 
@@ -146,7 +147,9 @@ export function registerSessionRoutes(app: Hono<AppEnv>) {
       `.execute(c.get('db'));
       const row = res.rows[0];
       if (!row) throw new Error('join_failed');
-      return c.json({ session: toDto(row, c.env.APP_SCHEME) });
+      const dto = toDto(row, c.env.APP_SCHEME);
+      await notifyRoom(c.env, row.id, { type: 'session_status', session: dto });
+      return c.json({ session: dto });
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       const map: Record<string, [ContentfulStatusCode, string]> = {
@@ -214,5 +217,7 @@ async function endSession(c: AppContext, creatorOnly: boolean) {
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirstOrThrow();
-  return c.json({ session: toDto(updated, c.env.APP_SCHEME) });
+  const dto = toDto(updated, c.env.APP_SCHEME);
+  await notifyRoom(c.env, id, { type: 'session_status', session: dto });
+  return c.json({ session: dto });
 }

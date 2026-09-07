@@ -17,13 +17,17 @@ function required(name: string, value: string | undefined, fallback?: string): s
   throw new Error(`[env] Variable d'environnement requise absente: ${name}`);
 }
 
+const apiBaseUrl = required(
+  'EXPO_PUBLIC_API_BASE_URL',
+  process.env.EXPO_PUBLIC_API_BASE_URL,
+  'http://localhost:8787',
+);
+
 export const env = {
   /** URL de base de l'API backend (Cloudflare Worker). */
-  apiBaseUrl: required(
-    'EXPO_PUBLIC_API_BASE_URL',
-    process.env.EXPO_PUBLIC_API_BASE_URL,
-    'http://localhost:8787',
-  ),
+  apiBaseUrl,
+  /** URL de base WebSocket (dérivée de apiBaseUrl). */
+  wsBaseUrl: apiBaseUrl.replace(/^http/, 'ws'),
   /** Environnement logique de l'app. */
   appEnv: (process.env.EXPO_PUBLIC_APP_ENV as 'development' | 'staging' | 'production') ?? 'development',
 } as const;

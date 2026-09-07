@@ -1,6 +1,8 @@
 export interface Env {
   /** Chaîne de connexion Neon (endpoint pooler). */
   DATABASE_URL: string;
+  /** Durable Object : une "room" temps réel par session de conversation. */
+  SESSION_ROOM: DurableObjectNamespace;
   /** Secret de signature des sessions Better Auth. */
   BETTER_AUTH_SECRET: string;
   /** URL publique du backend (baseURL Better Auth). */

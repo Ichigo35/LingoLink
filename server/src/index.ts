@@ -6,7 +6,10 @@ import { createAuth } from './auth';
 import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
 import { hasGoogleOAuth } from './env';
+import { registerRealtimeRoutes } from './realtime';
 import { registerSessionRoutes } from './sessions';
+
+export { SessionRoom } from './session-room';
 
 const app = new Hono<AppEnv>();
 
@@ -48,6 +51,7 @@ app.get('/api/profile/username-available', async (c) => {
 });
 
 registerSessionRoutes(app);
+registerRealtimeRoutes(app);
 
 // Toutes les routes Better Auth (session, social, anonymous, update-user, ...).
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));

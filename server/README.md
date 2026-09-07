@@ -10,7 +10,8 @@ parle jamais directement à Neon ni à Gemini.
 - ✅ **Phase 3** — Sessions de conversation : `/api/sessions*` (voir table).
   Contrôle d'accès appliqué côté Worker (`ownSessionQuery`). RLS activée sur
   `conversation_sessions` mais inerte sur Neon (BYPASSRLS hérité).
-- ⏳ Phase 4 — temps réel (Durable Objects).
+- ✅ **Phase 4** — Temps réel : Durable Object `SessionRoom` (`src/session-room.ts`),
+  auth par ticket HMAC (`src/tickets.ts`), routes `src/realtime.ts`.
 - ⏳ Phase 5 — proxy Gemini (`/api/ai/*`).
 
 ## Stack
@@ -18,6 +19,8 @@ parle jamais directement à Neon ni à Gemini.
 - Cloudflare Workers + Hono (`src/index.ts`)
 - **Better Auth** 1.7 (`src/auth.ts`) — plugins `expo()` + `anonymous()`
 - Neon Postgres via Kysely + `@neondatabase/serverless` (`src/db.ts`)
+- **Durable Objects** (SQLite, éligible plan gratuit) — 1 `SessionRoom` par session,
+  API WebSocket Hibernation. Le déploiement applique la migration DO tout seul.
 
 ## Endpoints
 
@@ -31,7 +34,17 @@ parle jamais directement à Neon ni à Gemini.
 | `GET /api/sessions/:id` | détail (créateur ou participant) |
 | `POST /api/sessions/:id/leave` | quitter → session `ended` |
 | `POST /api/sessions/:id/end` | terminer (créateur uniquement) |
+| `POST /api/sessions/:id/realtime-ticket` | ticket HMAC court + `wsUrl` |
+| `GET /api/rt/:id?ticket=` | upgrade WebSocket → Durable Object `SessionRoom` |
 | `* /api/auth/*` | Better Auth (sign-in/anonymous, social/google, get-session, update-user, sign-out…) |
+
+### Évènements WebSocket (serveur → client)
+
+- `{ type: 'presence', participants: [{ id, role, online }] }`
+- `{ type: 'session_status', session: <dto> }` (poussé sur join / leave / end)
+- `{ type: 'message' | 'message_update', message }` (relais pair-à-pair, Phase 6)
+
+Client → serveur : `{ type: 'ping' }`, `{ type: 'message' | 'message_update', message }`.
 
 ## Secrets (`.dev.vars` en local — gitignored ; `wrangler secret put` en prod)
 

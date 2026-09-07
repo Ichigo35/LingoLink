@@ -95,8 +95,15 @@ Ne jamais coder une langue en dur ailleurs.
   RLS activée sur la table mais inerte sur Neon (rôles héritent de
   `neon_superuser` BYPASSRLS, `ALTER ROLE NOBYPASSRLS` interdit en gratuit).
   Testé de bout en bout (10 cas : accès, expiration, jointure, doublons).
-- ⏳ Phase 4 — Supabase Realtime → **Cloudflare Durable Objects** : présence,
-  sync session, remplace le polling.
+- ✅ **Phase 4** — Temps réel : **Cloudflare Durable Object** `SessionRoom` (une
+  room WebSocket par session, API Hibernation). Auth WS par **ticket HMAC 60 s**
+  (`POST /api/sessions/:id/realtime-ticket` → `GET /api/rt/:id?ticket=`).
+  Diffuse : présence (connect/disconnect), `session_status` (poussé par le
+  Worker sur join/leave/end), relais des messages entre pairs (base Phase 6).
+  App : `services/realtime` (WS + reconnexion backoff + ping), `useLiveSession`
+  (snapshot HTTP + temps réel, poll de secours 15 s si déconnecté) remplace
+  `useSession`. `session/host` détecte la jointure via temps réel, plus de polling.
+  Testé de bout en bout (présence, join, message, end, ticket invalide).
 - Phases 5→10 : pipeline Gemini, conversation complète, lien d'invitation,
   contacts, proximité, polish.
 

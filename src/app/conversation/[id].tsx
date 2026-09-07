@@ -7,7 +7,7 @@ import { Screen } from '@/components/ui/screen';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useSession } from '@/hooks/use-session';
+import { useLiveSession } from '@/hooks/use-live-session';
 import { useTheme } from '@/hooks/use-theme';
 import { conversationsService } from '@/services/conversations';
 
@@ -24,7 +24,7 @@ export default function ConversationScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
-  const { session, loading, error } = useSession(id);
+  const { session, loading, error, connected, peerOnline } = useLiveSession(id, user?.id);
 
   if (loading && !session) {
     return (
@@ -50,7 +50,7 @@ export default function ConversationScreen() {
   const myLang = isCreator ? session.creatorLanguage : session.participantLanguage;
   const otherLang = isCreator ? session.participantLanguage : session.creatorLanguage;
   const ended = session.status === 'ended' || session.status === 'expired';
-  const bothPresent = session.status === 'active' && !!session.participantId;
+  const joined = session.status === 'active' && !!session.participantId;
 
   const sessionId = session.id;
   const leave = async () => {
@@ -83,11 +83,14 @@ export default function ConversationScreen() {
           <View
             style={[
               styles.dot,
-              { backgroundColor: ended ? theme.danger : bothPresent ? theme.positive : theme.warning },
+              { backgroundColor: ended ? theme.danger : joined ? theme.positive : theme.warning },
             ]}
           />
           <ThemedText style={styles.statusText}>
             {STATUS_LABEL[session.status] ?? session.status}
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.rtBadge}>
+            {connected ? '● temps réel' : '○ hors ligne'}
           </ThemedText>
         </View>
         <ThemedText themeColor="textSecondary" style={styles.langs}>
@@ -101,16 +104,18 @@ export default function ConversationScreen() {
         <ParticipantRow label="Vous" online themeColor={theme.positive} />
         <ParticipantRow
           label="L’autre personne"
-          online={bothPresent}
-          themeColor={bothPresent ? theme.positive : theme.textSecondary}
+          online={peerOnline}
+          themeColor={peerOnline ? theme.positive : theme.textSecondary}
         />
       </View>
 
       <View style={[styles.note, { borderColor: theme.border }]}>
         <ThemedText themeColor="textSecondary" style={styles.noteText}>
-          {bothPresent
+          {peerOnline
             ? 'Les deux téléphones sont connectés. Le micro et la traduction en direct arrivent en Phase 6.'
-            : 'Dès que l’autre personne rejoint, la conversation démarre ici.'}
+            : joined
+              ? 'L’autre personne a rejoint mais n’est pas connectée pour le moment.'
+              : 'Dès que l’autre personne rejoint, la conversation démarre ici.'}
         </ThemedText>
       </View>
 
@@ -159,6 +164,7 @@ const styles = StyleSheet.create({
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   statusText: { fontSize: 17, fontWeight: '600' },
+  rtBadge: { fontSize: 12, marginLeft: 'auto' },
   langs: { fontSize: 15 },
   participants: { marginTop: Spacing.four, gap: Spacing.three },
   participantRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },

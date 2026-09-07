@@ -7,25 +7,28 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { formatLanguage } from '@/config/languages';
-import { SESSION_POLL_INTERVAL_MS, formatCountdown, secondsUntil } from '@/config/session';
+import { formatCountdown, secondsUntil } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
+import { useLiveSession } from '@/hooks/use-live-session';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import { useNewConversationStore } from '@/stores/new-conversation-store';
-import { useSessionStore } from '@/stores/session-store';
 import type { ConversationSession } from '@/types';
 
 export default function HostSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { myLanguage, otherLanguage, method } = useNewConversationStore();
-  const setStoreSession = useSessionStore((s) => s.setSession);
 
   const [session, setSession] = useState<ConversationSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
   const creatingRef = useRef(false);
+
+  // Suit la session en temps réel dès sa création (présence + statut).
+  const live = useLiveSession(session?.id);
+  const liveStatus = live.session?.status;
 
   const createSession = useCallback(async () => {
     if (!myLanguage || !otherLanguage) {
@@ -56,24 +59,12 @@ export default function HostSessionScreen() {
     void createSession();
   }, [createSession]);
 
-  // Attente d'un participant.
+  // Un participant a rejoint -> on ouvre la conversation.
   useEffect(() => {
-    if (!session || session.status !== 'waiting') return;
-    const poll = setInterval(async () => {
-      try {
-        const fresh = await conversationsService.getSession(session.id);
-        setSession(fresh);
-        setRemaining(secondsUntil(fresh.expiresAt));
-        if (fresh.status === 'active') {
-          setStoreSession(fresh);
-          router.replace(`/conversation/${fresh.id}`);
-        }
-      } catch {
-        /* réessai au prochain tick */
-      }
-    }, SESSION_POLL_INTERVAL_MS);
-    return () => clearInterval(poll);
-  }, [session, router, setStoreSession]);
+    if (session && liveStatus === 'active') {
+      router.replace(`/conversation/${session.id}`);
+    }
+  }, [session, liveStatus, router]);
 
   // Compte à rebours local.
   useEffect(() => {
