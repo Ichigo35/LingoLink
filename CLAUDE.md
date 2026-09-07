@@ -5,177 +5,139 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
+**État au 2026-09-07 : les 10 phases du plan sont terminées, le backend est
+déployé, l'APK Android est buildé, l'app tourne sur simulateur iOS.** Le MVP est
+fonctionnel de bout en bout. Suite = itérations / corrections / traduction i18n
+des écrans secondaires.
+
 ## Contraintes imposées par l'utilisateur
 
-- **Base de données : Neon** en priorité (pas Supabase). Projet Neon `LingoLink`
-  = id `proud-mountain-72949074`, région `aws-eu-central-1`, PG 17,
-  org `org-sweet-tooth-50877405` (tcha.jimmy@gmail.com).
-- **Cloudflare** pour le domaine + le backend (Workers / Durable Objects).
-- **Gemini API** pour transcription + traduction. Clé fournie par l'utilisateur,
-  stockée UNIQUEMENT côté backend (jamais dans l'app, jamais commitée).
-- **Connexion Google** automatique (OAuth) requise.
+- **Base : Neon** (pas Supabase). Projet `LingoLink` = `proud-mountain-72949074`,
+  `aws-eu-central-1`, PG 17, org `org-sweet-tooth-50877405` (tcha.jimmy@gmail.com).
+- **Cloudflare** pour le backend (Workers + Durable Objects) et le domaine futur.
+- **Gemini API** pour transcription + traduction. Clé dans `server/.dev.vars` /
+  secrets Cloudflare uniquement — jamais dans l'app, jamais commitée.
+- **Connexion Google** OAuth (configurée, projet GCP `lingo-link-507902`).
 - **Git** : commit + push sur `git@github.com:Ichigo35/LingoLink.git` à la fin de
-  chaque tâche. Mettre à jour `CLAUDE.md` + `memory/` à chaque fois.
-- **Build APK** : toujours en local, puis ouvrir le fichier généré.
-- Navigateur : utiliser Playwright (`mcp__playwright__*`), jamais `claude-in-chrome`.
+  chaque tâche. MAJ `CLAUDE.md` + `memory/` à chaque fois.
+- **Build APK toujours en local** puis ouvrir le fichier.
+- Navigateur : Playwright (`mcp__playwright__*`), pas `claude-in-chrome` — SAUF
+  exception explicite de l'utilisateur (utilisée pour la config Google Cloud).
+
+## Déploiement (fait)
+
+- **Backend** : `https://lingolink-api.ichigo35.workers.dev` (Cloudflare Worker
+  `lingolink-api`, compte tcha.jimmy@gmail.com `34cf747a1eaf3858a49e4fafaf9580e0`).
+  5 secrets poussés via `server/deploy-secrets.sh`. `wrangler.jsonc`
+  `vars.BETTER_AUTH_URL` = URL de prod ; `server/.dev.vars` garde `localhost` pour
+  `wrangler dev`.
+- **Google OAuth** : redirect URIs `http://localhost:8787/...` + `https://
+  lingolink-api.ichigo35.workers.dev/api/auth/callback/google` enregistrées.
+  Écran de consentement en mode **Test**, `tcha.jimmy@gmail.com` = utilisateur test.
+- **Migrations Neon** : `0001`..`0005` appliquées (voir `server/migrations/`).
+- **App `.env` / `.env.production`** : `EXPO_PUBLIC_API_BASE_URL` = URL de prod.
+  Pour re-dev en local : remettre `http://localhost:8787` (simu iOS) ou
+  `http://10.0.2.2:8787` (émulateur Android) + lancer `cd server && npm run dev`.
+
+## Builds
+
+- **APK Android** : `npx expo prebuild -p android --clean` puis
+  `cd android && ANDROID_HOME="$HOME/Library/Android/sdk"
+  JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+  ./gradlew :app:assembleRelease [-PreactNativeArchitectures=arm64-v8a]`.
+  Signé avec la clé debug (OK pour test). Résultat copié dans `build-output/`
+  (gitignored). arm64 ≈ 55 Mo, universel ≈ 132 Mo.
+- **iOS simulateur** : `npx expo run:ios` (build Xcode + pod install la 1ʳᵉ fois,
+  ~2 Go DerivedData). Si le process se fige après le build : booter + installer à
+  la main via `xcrun simctl boot|install|launch` (l'`.app` est dans DerivedData
+  `Build/Products/Debug-iphonesimulator/LingoLink.app`, bundle id
+  `com.ichigo35.lingolink`). Metro sert le JS sur :8081.
+- `android/` et `ios/` sont **gitignored** (workflow managed, prebuild à la demande).
 
 ## Architecture
 
 ```
-App Expo (RN/TS/expo-router, Zustand)
-   │  HTTPS + WebSocket
+App Expo (RN 0.86 / SDK 57 / TS / expo-router / Zustand)
+   │  HTTPS + WebSocket (wss)
    ▼
-Cloudflare Worker  ──►  proxy Gemini (clé secrète ici)
-   │                    mint/validation tokens de session
-   │                    Durable Object = 1 room temps réel par session
+Cloudflare Worker "lingolink-api" (Hono)
+   ├─ Better Auth (expo + anonymous plugins) — auth auto-hébergée
+   ├─ proxy Gemini (streamGenerateContent) — clé secrète ici
+   ├─ tokens de session (aléatoires) + tickets WS (HMAC 60 s, scope)
+   ├─ Durable Object SessionRoom — 1 room WS temps réel par session
+   └─ Durable Object UserInbox — 1 boîte de réception WS par utilisateur
    ▼
-Neon Postgres (RLS)
+Neon Postgres  (RLS activée mais inerte sur Neon → contrôle d'accès Worker)
 ```
 
-- L'app ne parle JAMAIS directement à Neon ni à Gemini. Tout passe par le Worker.
-- Service IA abstrait : `src/services/ai/types.ts` (`AITranslationService`). Aucun
-  composant ne dépend de Gemini directement.
-- Temps réel : Cloudflare Durable Objects (remplace Supabase Realtime).
-- Auth : **Better Auth** (auto-hébergé sur le Worker) — plugins `expo()` +
-  `anonymous()`. Mode invité = `signIn.anonymous()`. Google OAuth activable.
-  Tables auth dans Neon (`user`, `session`, `account`, `verification`).
-  Le worker `lingolink-api` : voir `server/`.
+- L'app ne parle JAMAIS directement à Neon ni à Gemini. Tout via le Worker.
+- IA abstraite : `AITranslationService` (app) / `TranslationProvider` (Worker).
+- **RLS Neon inerte** : tous les rôles héritent de `neon_superuser` (BYPASSRLS),
+  `ALTER ROLE NOBYPASSRLS` interdit en gratuit. → chaque endpoint filtre par
+  `creator_id`/`participant_id`/appartenance. Rôle `lingolink_app` créé, non utilisé.
+- **Latence traduction** : ~2,3 s en prod pour transcription + traduction
+  complète (streaming progressif, `gemini-3.5-flash`, audio 16 kHz mono).
+  Étape suivante possible : Gemini Live API (bidi) — reporté.
 
-## Structure du code
+## Structure
 
 ```
 src/
-  app/            écrans + routage expo-router (minces, délèguent à features/)
-  components/ui/   composants de présentation réutilisables
-  config/          languages.ts (config langues centralisée §18), env.ts
-  features/        modules métier par fonctionnalité (à venir)
-  services/        ai/ auth/ conversations/ realtime/ nearby/ (interfaces abstraites)
-  lib/             api-client.ts (fetch vers le Worker)
-  stores/          Zustand (settings-store persisté, new-conversation-store)
-  types/           types de domaine partagés (alignés sur le schéma DB)
-server/            backend Cloudflare Worker (non implémenté — voir server/README.md)
+  app/            écrans + routage expo-router
+  components/      themed-*, ui/, error-boundary, offline-banner, conversation-invite-modal
+  config/          languages.ts (§18, centralisé), env.ts, session.ts
+  features/        conversation/use-audio-capture.ts
+  hooks/           use-auth, use-live-session, use-app-realtime, use-theme, i18n via src/i18n
+  i18n/            translations.ts (fr/en, parcours principal) + useT()
+  lib/             api-client.ts, auth-client.ts (better-auth expo)
+  services/        ai/ auth/ conversations/ realtime/ inbox/ contacts/ nearby/
+  stores/          settings, session, new-conversation, pending-join, inbox
+  types/
+server/            backend Cloudflare Worker (voir server/README.md pour les endpoints)
+  src/             index, auth, ai, gemini, sessions, messages, realtime, inbox,
+                   contacts, nearby, invites, session-room, user-inbox, tickets, tokens, db
+  migrations/       0001..0005
 ```
 
 ## Langues MVP
 
-`lo, fr, en, th, zh` — définies UNIQUEMENT dans `src/config/languages.ts`.
-Ne jamais coder une langue en dur ailleurs.
+`lo, fr, en, th, zh` — UNIQUEMENT dans `src/config/languages.ts` (app) et
+`server/src/languages.ts` (miroir). Jamais en dur ailleurs.
 
 ## Règles de travail
 
-1. Travailler phase par phase (plan §19 du cahier des charges). Ne pas anticiper.
-2. Avant gros changements : analyser, expliquer, proposer le plan de la phase.
-3. Après code : `npx tsc --noEmit` + `npm run lint` doivent passer. Tester.
-4. Ne jamais afficher/committer une clé API. Ne jamais désactiver RLS "pour dépanner".
-5. Ne pas simuler une fonctionnalité comme terminée si elle ne marche pas.
-6. Résumer + expliquer précisément comment tester à la fin de chaque phase.
-
-## Avancement
-
-- ✅ **Phase 1** — Init : scaffold Expo SDK 57, structure, config langues, env,
-  écran d'accueil + écrans placeholder, thème/dark mode, réglages fonctionnels.
-- ✅ **Phase 2** — Auth & profils : backend `server/` (Cloudflare Worker + Hono +
-  Better Auth + Neon). Mode invité (anonyme) fonctionnel de bout en bout.
-  **Google OAuth configuré et vérifié** (projet GCP `lingo-link-507902`, client
-  « Lingo Link Web », creds dans `server/.dev.vars`, écran de consentement en
-  mode Test avec `tcha.jimmy@gmail.com` comme utilisateur test).
-  App : `welcome`, `onboarding`, `profile`, garde de session dans `_layout.tsx`,
-  `useAuth()`, `authClient` (better-auth expo), `authService`.
-  ⚠️ Reste à faire par l'utilisateur : déployer le Worker (`server/DEPLOY.md`,
-  puis ajouter la redirect URI de prod dans la console Google). Tester la
-  connexion Google de préférence en dev build (`npx expo run:ios`), pas Expo Go
-  (deep-linking).
-- ✅ **Phase 3** — Sessions : table `conversation_sessions` (Neon, migration
-  0002), endpoints Worker `/api/sessions*` (create / join par token ou code
-  court / get / leave / end), token aléatoire 32o + code court 8 car., TTL 10 min
-  + expiration paresseuse. App : `session/host` (QR + code + compte à rebours +
-  partage lien), `scan` (caméra `expo-camera` + saisie manuelle), `conversation/[id]`
-  (lobby : langues, présence, quitter/terminer, polling 3 s).
-  **Contrôle d'accès : couche Worker** (filtre `creator_id`/`participant_id`).
-  RLS activée sur la table mais inerte sur Neon (rôles héritent de
-  `neon_superuser` BYPASSRLS, `ALTER ROLE NOBYPASSRLS` interdit en gratuit).
-  Testé de bout en bout (10 cas : accès, expiration, jointure, doublons).
-- ✅ **Phase 4** — Temps réel : **Cloudflare Durable Object** `SessionRoom` (une
-  room WebSocket par session, API Hibernation). Auth WS par **ticket HMAC 60 s**
-  (`POST /api/sessions/:id/realtime-ticket` → `GET /api/rt/:id?ticket=`).
-  Diffuse : présence (connect/disconnect), `session_status` (poussé par le
-  Worker sur join/leave/end), relais des messages entre pairs (base Phase 6).
-  App : `services/realtime` (WS + reconnexion backoff + ping), `useLiveSession`
-  (snapshot HTTP + temps réel, poll de secours 15 s si déconnecté) remplace
-  `useSession`. `session/host` détecte la jointure via temps réel, plus de polling.
-  Testé de bout en bout (présence, join, message, end, ticket invalide).
-- ✅ **Phase 5** — Pipeline Gemini : proxy dans le Worker (clé jamais exposée).
-  `POST /api/ai/process` (audio → transcript + traduction, JSON structuré),
-  `/api/ai/transcribe`, `/api/ai/translate`. `gemini-2.5-flash` (configurable
-  `GEMINI_MODEL`), thinking désactivé, retry 503/429 backoff, timeout 30 s.
-  Fournisseur abstrait `TranslationProvider` (Gemini remplaçable).
-  App : `GeminiAIService` implémente `AITranslationService`, `useAudioCapture`
-  (expo-audio, push-to-talk), écran dev **Réglages → Test du pipeline IA**.
-  Testé : fr→en, fr→lo, en→lo, transcribe seul, cas d'erreur. Latence ~4 s /
-  phrase courte.
-- ✅ **Phase 6** — Conversation complète : boucle micro → Gemini → temps réel →
-  autre téléphone. Table `conversation_messages` (migration 0003).
-  `POST /api/sessions/:id/messages` : insère le message, **streame** la
-  transcription + traduction (Gemini `streamGenerateContent`, délimiteur `|||`)
-  et diffuse `message` / `message_update` (partial → completed) via le Durable
-  Object. `GET .../messages` pour le snapshot.
-  App : `conversation/[id]` réécrit (bulles §7, Push-to-Talk, bulle optimiste,
-  états `processing/partial/completed/failed`, auto-scroll). `useLiveSession`
-  gère aussi les messages. `useAudioCapture` enregistre en 16 kHz mono 24 kbps.
-  **Latence** : ~1,4 s Gemini + réseau ; ~3 s en dev local (Mac↔eu-central),
-  attendu ~1,5-2 s en prod. Optimisations : streaming progressif, modèle
-  `gemini-3.5-flash`, requêtes auth+session en parallèle, insert non bloquant,
-  audio compressé. Testé de bout en bout.
-- ✅ **Phase 7** — Lien d'invitation : deep link `lingolink://join/<token>`
-  (scheme déjà enregistré, route `app/join/[token].tsx`). `GET /api/sessions/lookup`
-  (public, aperçu langues + expiration sans rejoindre, par token ou code court).
-  Écran de confirmation (langues, compte à rebours, Rejoindre). Partage natif
-  (`Share`) + « Copier le lien » (`expo-clipboard`). Deep link reçu hors
-  connexion → token mémorisé (`pending-join-store`) → repris après auth/onboarding.
-  Compatible Universal Links / App Links plus tard : `extractJoinToken` +
-  `useDeepLinkCapture` parsent n'importe quelle URL contenant `/join/<token>` ;
-  il suffira d'ajouter le domaine dans `app.json` + fichiers AASA/assetlinks.
-- ✅ **Phase 8** — Contacts : tables `contacts` / `contact_requests` /
-  `user_presence` (migration 0004). Recherche username, demandes
-  (envoyer/accepter/refuser, auto-accept si demande inverse), liste avec
-  présence (heartbeat 30 s), suppression, **démarrage rapide** d'une conversation
-  (crée la session + pousse une invitation temps réel).
-  Nouveau **Durable Object `UserInbox`** (1 par user) : boîte de réception WS
-  pour les invitations (réutilisé Phase 9). Tickets HMAC généralisés (`scope`).
-  App : `services/contacts` + `services/inbox`, `useAppRealtime` (monté dans
-  `_layout` : heartbeat + inbox), modale globale « X souhaite démarrer une
-  conversation », `contacts.tsx` réécrit. Contacts = compte requis (username).
-  Testé de bout en bout.
-- ✅ **Phase 9** — Personnes à proximité : tables `nearby_presence` /
-  `nearby_requests` (migration 0005). Visibilité **opt-in** (`POST/DELETE
-  /api/nearby/visible`), coordonnées **arrondies ~110 m** avant stockage, TTL 5 min.
-  `GET /api/nearby` → liste avec **distance en bucket** (20/50/100/200/500 m),
-  jamais de coordonnées. `POST /api/nearby/:id/request` → session + invitation
-  inbox, anti-spam (1 demande / paire / 2 min), cible doit être visible.
-  Helper partagé `createConversationInvite` (`src/invites.ts`, utilisé aussi par
-  les contacts). App : `services/nearby`, `nearby.tsx` (toggle visible,
-  `expo-location`, liste, Se connecter) — invisible dès qu'on quitte l'écran.
-  Testé de bout en bout. **Les 4 méthodes de connexion sont faites.**
-- ✅ **Phase 10** — Polish : `ErrorBoundary` global, bandeau hors-ligne
-  (`expo-network`), i18n fr/en (`src/i18n/`, parcours principal traduit,
-  `useT()` lit `settings-store.uiLanguage`), haptique sur le micro
-  (`expo-haptics`), « Reprendre la conversation » + identité sur l'accueil,
-  couleurs de splash/icône Android au ton de marque, `expo-doctor` 21/21.
-  Le temps réel se reconnecte déjà (backoff) — vérifié.
+1. Après code : `npx tsc --noEmit` (app) + `cd server && npx tsc --noEmit` +
+   `npm run lint` doivent passer. Tester avant de dire que c'est fait.
+2. Jamais afficher/committer une clé. Jamais désactiver RLS "pour dépanner".
+3. Ne pas simuler une fonctionnalité comme terminée si elle ne marche pas.
+4. Vérifier la doc réelle d'une API externe avant de l'intégrer (pas d'invention).
+5. `wrangler deploy` est bloqué pour l'agent → demander à l'utilisateur.
 
 ## Commandes
 
 | But | Commande |
 |-----|----------|
-| Lancer l'app | `npx expo start` (puis `i` / `a` / QR Expo Go) |
-| Lancer le backend | `cd server && npm run dev` (→ http://localhost:8787) |
-| Typecheck app | `npx tsc --noEmit` |
-| Typecheck backend | `cd server && npm run typecheck` |
+| App (dev) | `npx expo start` (puis `i` / `a`) |
+| App iOS simulateur | `npx expo run:ios` |
+| Backend local | `cd server && npm run dev` (:8787) |
+| Typecheck | `npx tsc --noEmit` · `cd server && npx tsc --noEmit` |
 | Lint | `npm run lint` |
-| Bundle de contrôle | `npx expo export --platform ios --output-dir /tmp/x` |
-| Déployer le backend | `cd server && npx wrangler deploy` (voir `server/DEPLOY.md`) |
+| Bundle de contrôle | `npx expo export -p ios --output-dir /tmp/x` |
+| Déployer le backend | `cd server && bash deploy-secrets.sh && npx wrangler deploy` |
+| Build APK | voir section **Builds** |
+| Test backend (scripts) | dans le scratchpad de session : `*-test.mjs` (rt, msg, contacts, nearby) |
 
 ## Expo
 
-Expo SDK **57**. Lire https://docs.expo.dev/versions/v57.0.0/ avant d'écrire du
-code Expo (l'API a changé).
+Expo SDK **57**, RN **0.86**, React 19.2. Lire
+https://docs.expo.dev/versions/v57.0.0/ avant du code Expo (l'API a changé).
+Lint `react-hooks/set-state-in-effect` : faux positifs fréquents sur les actions
+async en effet → `eslint-disable-next-line` avec justification (pattern déjà utilisé).
+
+## Reste à faire (idées)
+
+- i18n des écrans secondaires (profil, contacts, proximité, réglages, host, join).
+- Icône/splash custom (placeholders Expo actuels).
+- APK signé release (clé de prod) si distribution hors test.
+- `preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`.
+- Rétention : purge des messages/sessions terminées (cron).
