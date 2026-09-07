@@ -31,7 +31,7 @@ npx wrangler secret put GEMINI_API_KEY
 
 # Premier déploiement :
 npx wrangler deploy
-# -> note l'URL renvoyée : https://lingolink-api.<sous-domaine>.workers.dev
+# -> note l'URL renvoyée : https://lingolink-api.ichigo35.workers.dev
 ```
 
 Ensuite :
@@ -39,11 +39,11 @@ Ensuite :
    `npx wrangler deploy` à nouveau.
 2. Dans la console Google Cloud (projet `lingo-link-507902` → Clients → « Lingo
    Link Web »), ajouter la redirect URI de prod :
-   `https://lingolink-api.<sous-domaine>.workers.dev/api/auth/callback/google`.
+   `https://lingolink-api.ichigo35.workers.dev/api/auth/callback/google`.
 
 Enfin, dans `../.env` de l'app :
 ```
-EXPO_PUBLIC_API_BASE_URL=https://lingolink-api.<sous-domaine>.workers.dev
+EXPO_PUBLIC_API_BASE_URL=https://lingolink-api.ichigo35.workers.dev
 ```
 
 ## 3. Migrations base de données

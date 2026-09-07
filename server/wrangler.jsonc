@@ -8,7 +8,7 @@
     "enabled": true
   },
   "vars": {
-    "BETTER_AUTH_URL": "http://localhost:8787",
+    "BETTER_AUTH_URL": "https://lingolink-api.ichigo35.workers.dev",
     "APP_SCHEME": "lingolink",
     "GEMINI_MODEL": "gemini-3.5-flash"
   },
