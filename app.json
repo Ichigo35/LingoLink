@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "LingoLink",
+    "name": "Lingo Link",
     "slug": "LingoLink",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,12 @@
     "scheme": "lingolink",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ichigo35.lingolink"
     },
     "android": {
+      "package": "com.ichigo35.lingolink",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
