@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -37,6 +37,10 @@ export default function ConversationScreen() {
   const [sending, setSending] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  /** true dès que l'utilisateur local déclenche lui-même la sortie. */
+  const leavingRef = useRef(false);
+  /** Empêche d'ouvrir deux fois l'alerte « l'autre a quitté ». */
+  const peerLeftShownRef = useRef(false);
 
   const isCreator = !!session && user?.id === session.creatorId;
   const myLang = session ? (isCreator ? session.creatorLanguage : session.participantLanguage) : null;
@@ -96,6 +100,7 @@ export default function ConversationScreen() {
   }, [capture, id, session, myLang, otherLang, user?.id, t]);
 
   async function leave() {
+    leavingRef.current = true;
     try {
       if (isCreator) await conversationsService.endSession(id!);
       else await conversationsService.leaveSession(id!);
@@ -104,6 +109,17 @@ export default function ConversationScreen() {
     }
     router.replace('/');
   }
+
+  // L'autre personne a quitté / terminé : on prévient et on invite à sortir.
+  useEffect(() => {
+    if (!ended || leavingRef.current || peerLeftShownRef.current) return;
+    peerLeftShownRef.current = true;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    Alert.alert(t('conv.peerLeftTitle'), t('conv.peerLeftBody'), [
+      { text: t('conv.peerLeftStay'), style: 'cancel' },
+      { text: t('conv.leave'), style: 'destructive', onPress: () => router.replace('/') },
+    ]);
+  }, [ended, router, t]);
 
   function confirmLeave() {
     Alert.alert(
@@ -137,7 +153,9 @@ export default function ConversationScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.fill, { backgroundColor: theme.background }]} edges={['bottom']}>
+    <SafeAreaView
+      style={[styles.fill, { backgroundColor: theme.background }]}
+      edges={['top', 'bottom']}>
       {/* Barre d'état */}
       <View style={[styles.topbar, { borderColor: theme.border }]}>
         <View style={styles.topbarLeft}>
@@ -256,7 +274,7 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
 
         {failed ? (
           <ThemedText style={{ color: mine ? theme.tintText : theme.danger }}>
-            {t('conv.translationFailed')}
+            {message.error || t('conv.translationFailed')}
           </ThemedText>
         ) : processing && !message.originalTranscript ? (
           <View style={styles.micRow}>

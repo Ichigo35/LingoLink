@@ -9,6 +9,7 @@ import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
 import { type Env, hasGoogleOAuth } from './env';
 import { registerInboxRoutes } from './inbox';
+import { registerJoinRoutes } from './join';
 import { registerMessageRoutes } from './messages';
 import { registerNearbyRoutes } from './nearby';
 import { registerRealtimeRoutes } from './realtime';
@@ -59,6 +60,7 @@ app.get('/api/profile/username-available', async (c) => {
   return c.json({ available: !existing, reason: existing ? ('taken' as const) : null });
 });
 
+registerJoinRoutes(app);
 registerSessionRoutes(app);
 registerRealtimeRoutes(app);
 registerAiRoutes(app);

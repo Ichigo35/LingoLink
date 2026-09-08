@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import { MAX_AUDIO_B64_LENGTH, aiErrorResponse, getTranslationProvider } from './ai';
+import { MAX_AUDIO_B64_LENGTH, aiErrorInfo, aiErrorResponse, getTranslationProvider } from './ai';
 import type { AppEnv } from './context';
 import type { Database } from './db';
 import { isLanguageCode } from './languages';
@@ -175,7 +175,11 @@ export function registerMessageRoutes(app: Hono<AppEnv>) {
         .set({ status: 'failed', updated_at: row.updated_at })
         .where('id', '=', messageId)
         .execute();
-      await notifyRoom(c.env, id, { type: 'message_update', message: toDto(row) });
+      const info = aiErrorInfo(err);
+      await notifyRoom(c.env, id, {
+        type: 'message_update',
+        message: { ...toDto(row), error: info.message, errorCode: info.code },
+      });
       return aiErrorResponse(c, err);
     }
   });

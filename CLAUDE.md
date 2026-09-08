@@ -14,6 +14,19 @@ rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
 Backend redéployé avec tout ça (dernière version `596f309a`).
 Suite = itérations / corrections / pistes libres (voir bas de fichier).
 
+**Itération 2026-09-08 (2) — retours terrain d'un test à 2 téléphones :**
+1. Échecs de traduction en cascade = quota gratuit Gemini `gemini-3.5-flash`
+   (20 req/jour/projet) épuisé → **chaîne de repli multi-modèles** (§ Latence),
+   messages d'erreur typés et affichés sur la bulle.
+2. Barre du haut de la conversation cachée par l'heure/wifi (Android) →
+   `SafeAreaView edges={['top','bottom']}` dans `conversation/[id].tsx`.
+3. Lien WhatsApp non cliquable → **lien HTTPS `/join/<token>` + App Links
+   Android** (§ Liens de partage).
+4. Sortie d'un participant non signalée → alerte « L'autre personne a quitté »
+   + invite à sortir (`conv.peerLeft*`), sur transition `status → ended`.
+5. Builds locaux : **un seul fichier par plateforme, écrasé** (§ Builds).
+Backend redéployé (version `e45159dd`).
+
 ## Contraintes imposées par l'utilisateur
 
 - **Base : Neon** (pas Supabase). Projet `LingoLink` = `proud-mountain-72949074`,
@@ -46,11 +59,18 @@ Suite = itérations / corrections / pistes libres (voir bas de fichier).
 
 ## Builds
 
-- **APK Android** : `npx expo prebuild -p android --clean` puis
-  `cd android && ANDROID_HOME="$HOME/Library/Android/sdk"
-  JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
-  ./gradlew :app:assembleRelease [-PreactNativeArchitectures=arm64-v8a]`.
-  Résultat → `build-output/` (gitignored). arm64 ≈ 55 Mo, universel ≈ 132 Mo.
+**Nom de fichier des builds locaux (règle utilisateur 2026-09-08)** : un seul et
+unique fichier par plateforme, nommé d'après le projet, **écrasé** à chaque build
+— jamais de fichier daté ni suffixé. Cibles fixes dans `build-output/`
+(gitignored) :
+- `build-output/LingoLink.apk` (Android)
+- `build-output/LingoLink.ipa` (iOS, si un jour on produit un archive)
+Le build simulateur iOS (`expo run:ios`) ne produit pas d'artefact à conserver.
+
+- **APK Android** : `bash scripts/build-apk.sh` (arm64 ≈ 55 Mo) ou
+  `bash scripts/build-apk.sh universal` (≈ 132 Mo). Le script fait le prebuild,
+  le `gradlew :app:assembleRelease` (avec `ANDROID_HOME` / `JAVA_HOME` openjdk@21)
+  puis **copie vers `build-output/LingoLink.apk` en écrasant**.
 - **Signature release** : plugin `plugins/withAndroidReleaseSigning.js` (réinjecté
   au prebuild). Si `credentials/keystore.properties` existe → APK signé avec le
   keystore de prod (`credentials/lingolink-release.jks`, alias `lingolink`,
@@ -97,8 +117,21 @@ Neon Postgres  (RLS activée mais inerte sur Neon → contrôle d'accès Worker)
   `ALTER ROLE NOBYPASSRLS` interdit en gratuit. → chaque endpoint filtre par
   `creator_id`/`participant_id`/appartenance. Rôle `lingolink_app` créé, non utilisé.
 - **Latence traduction** : ~2,3 s en prod pour transcription + traduction
-  complète (streaming progressif, `gemini-3.5-flash`, audio 16 kHz mono).
+  complète (streaming progressif, audio 16 kHz mono).
   Étape suivante possible : Gemini Live API (bidi) — reporté.
+- **Modèles Gemini — chaîne de repli** (`server/src/gemini.ts`) : `GEMINI_MODEL`
+  (var wrangler) est une **liste séparée par des virgules**. Chaque modèle du
+  niveau gratuit a un quota **journalier par projet** (ex. `gemini-3.5-flash` =
+  20/jour !). Quand un modèle renvoie `RESOURCE_EXHAUSTED` (quota du jour), il est
+  mis en pause dans l'isolat (`retryDelay` de l'API, ou 1 h) et on passe au
+  suivant. Ordre actuel :
+  `gemini-2.5-flash,gemini-3-flash-preview,gemini-3.7-flash,gemini-3.5-flash`.
+  Un 429 « par minute » → petite attente puis bascule. `thinkingConfig` retiré
+  automatiquement pour les modèles qui le refusent (400). Erreurs typées
+  (`aiErrorInfo`) : `ai_quota` (503) / `ai_rate_limited` (429) / `ai_timeout` /
+  `ai_blocked` → message précis renvoyé à l'app **et** collé sur la bulle en
+  échec (`message.error`, non persisté).
+  → Le vrai correctif volume = activer la facturation Gemini (décision utilisateur).
 
 ## Structure
 
@@ -116,8 +149,8 @@ src/
   types/
 server/            backend Cloudflare Worker (voir server/README.md pour les endpoints)
   src/             index, auth, ai, gemini, sessions, messages, realtime, inbox,
-                   contacts, nearby, invites, session-room, user-inbox, tickets,
-                   tokens, db, retention, rate-limit
+                   contacts, nearby, invites, join, session-room, user-inbox,
+                   tickets, tokens, db, retention, rate-limit
   migrations/       0001..0005
 plugins/           withAndroidReleaseSigning.js (config plugin Expo, signature release)
 assets/icon-src/   sources SVG du logo + build.sh (régénère assets/images/)
@@ -149,6 +182,24 @@ Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
 Clé = `msg:<userId>` / `ai:<userId>`. Dépassement → `429 {code:"rate_limited"}`.
 Best-effort par colo (pas global) — suffisant pour le contrôle de coût.
 Better Auth garde son rate limiting intégré côté `/api/auth/*`.
+
+## Liens de partage / deep links
+
+- **`session.joinUrl` = URL HTTPS** `https://lingolink-api.ichigo35.workers.dev/join/<token>`
+  (plus `lingolink://…` : non cliquable dans WhatsApp). Construit dans
+  `server/src/sessions.ts` `toDto()` à partir de `BETTER_AUTH_URL`.
+- **`server/src/join.ts`** :
+  - `GET /join/:token` → page HTML légère qui rebondit vers
+    `lingolink://join/<token>` (bouton de secours). Sert aussi de cible App Links.
+  - `GET /.well-known/assetlinks.json` → vérif **App Links Android** (package
+    `com.ichigo35.lingolink` + SHA-256 du keystore release). Android ouvre alors
+    l'app directement, sans page intermédiaire.
+- **App** : `app.json` → `android.intentFilters` (`autoVerify`, host
+  `lingolink-api.ichigo35.workers.dev`, `pathPrefix /join`). `src/app/+native-intent.ts`
+  ramène l'URL HTTPS entrante au chemin interne `/join/<token>`. Le QR encode
+  aussi cette URL HTTPS (toujours scannable, `extractJoinToken` gère les 2 formes).
+- **iOS Universal Links** : pas fait (besoin d'un Team ID Apple / compte
+  Developer). La page de rebond couvre iOS en attendant (tap Safari → scheme).
 
 ## Rétention (cron)
 

@@ -25,7 +25,7 @@ async function requireUser(c: AppContext): Promise<{ id: string } | null> {
 
 type SessionRow = Database['conversation_sessions'];
 
-function toDto(row: SessionRow, scheme: string) {
+function toDto(row: SessionRow, publicUrl: string) {
   return {
     id: row.id,
     creatorId: row.creator_id,
@@ -36,7 +36,7 @@ function toDto(row: SessionRow, scheme: string) {
     status: row.status,
     connectionToken: row.connection_token,
     shortCode: formatShortCode(row.short_code),
-    joinUrl: `${scheme}://join/${row.connection_token}`,
+    joinUrl: `${publicUrl.replace(/\/$/, '')}/join/${row.connection_token}`,
     expiresAt: toIso(row.expires_at),
     createdAt: toIso(row.created_at) as string,
     activatedAt: toIso(row.activated_at),
@@ -137,7 +137,7 @@ export function registerSessionRoutes(app: Hono<AppEnv>) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    return c.json({ session: toDto(row, c.env.APP_SCHEME) }, 201);
+    return c.json({ session: toDto(row, c.env.BETTER_AUTH_URL) }, 201);
   });
 
   // Rejoindre via token (QR / lien) ou code court (saisie manuelle).
@@ -159,7 +159,7 @@ export function registerSessionRoutes(app: Hono<AppEnv>) {
       `.execute(c.get('db'));
       const row = res.rows[0];
       if (!row) throw new Error('join_failed');
-      const dto = toDto(row, c.env.APP_SCHEME);
+      const dto = toDto(row, c.env.BETTER_AUTH_URL);
       await notifyRoom(c.env, row.id, { type: 'session_status', session: dto });
       return c.json({ session: dto });
     } catch (err) {
@@ -200,7 +200,7 @@ export function registerSessionRoutes(app: Hono<AppEnv>) {
         .returningAll()
         .executeTakeFirstOrThrow();
     }
-    return c.json({ session: toDto(row, c.env.APP_SCHEME) });
+    return c.json({ session: toDto(row, c.env.BETTER_AUTH_URL) });
   });
 
   app.post('/api/sessions/:id/leave', (c) => endSession(c, false));
@@ -221,7 +221,7 @@ async function endSession(c: AppContext, creatorOnly: boolean) {
   }
 
   if (row.status === 'ended' || row.status === 'expired') {
-    return c.json({ session: toDto(row, c.env.APP_SCHEME) });
+    return c.json({ session: toDto(row, c.env.BETTER_AUTH_URL) });
   }
   const updated = await db
     .updateTable('conversation_sessions')
@@ -229,7 +229,7 @@ async function endSession(c: AppContext, creatorOnly: boolean) {
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirstOrThrow();
-  const dto = toDto(updated, c.env.APP_SCHEME);
+  const dto = toDto(updated, c.env.BETTER_AUTH_URL);
   await notifyRoom(c.env, id, { type: 'session_status', session: dto });
   return c.json({ session: dto });
 }

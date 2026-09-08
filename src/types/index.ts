@@ -46,7 +46,7 @@ export interface ConversationSession {
   connectionToken: string;
   /** Code court formaté "XXXX-XXXX" pour la saisie manuelle. */
   shortCode: string;
-  /** Deep link de jointure : lingolink://join/<token>. */
+  /** Lien de jointure HTTPS cliquable (rebondit vers l'app) : https://.../join/<token>. */
   joinUrl: string;
   method: ConnectionMethod;
   expiresAt: ISODateString | null;
@@ -76,6 +76,10 @@ export interface ConversationMessage {
   /** Id local optionnel, pour réconcilier la bulle optimiste de l'émetteur. */
   clientId: string | null;
   createdAt: ISODateString;
+  /** Message d'erreur affichable quand `status === 'failed'` (transitoire, non persisté). */
+  error?: string;
+  /** Code d'erreur machine associé (ex. `ai_quota`, `ai_rate_limited`). */
+  errorCode?: string;
 }
 
 /* ------------------------------- Contacts ------------------------------- */

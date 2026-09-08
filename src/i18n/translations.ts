@@ -217,6 +217,9 @@ export const TRANSLATIONS = {
     'conv.leaveTitle': 'Quitter la conversation ?',
     'conv.endBody': 'La session sera fermée pour les deux.',
     'conv.leaveBody': 'Vous pourrez en rejoindre une autre.',
+    'conv.peerLeftTitle': 'L’autre personne a quitté',
+    'conv.peerLeftBody': 'La conversation est terminée. Vous pouvez sortir.',
+    'conv.peerLeftStay': 'Rester',
 
     'error.title': 'Une erreur est survenue',
     'error.body': 'L’application a rencontré un problème inattendu.',
@@ -433,6 +436,9 @@ export const TRANSLATIONS = {
     'conv.leaveTitle': 'Leave the conversation?',
     'conv.endBody': 'The session will be closed for both.',
     'conv.leaveBody': 'You can join another one.',
+    'conv.peerLeftTitle': 'The other person left',
+    'conv.peerLeftBody': 'The conversation has ended. You can leave now.',
+    'conv.peerLeftStay': 'Stay',
 
     'error.title': 'Something went wrong',
     'error.body': 'The app ran into an unexpected problem.',

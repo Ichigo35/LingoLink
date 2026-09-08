@@ -20,7 +20,11 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   /** Clé Gemini (proxy transcription + traduction). */
   GEMINI_API_KEY?: string;
-  /** Modèle Gemini (défaut : gemini-2.5-flash). */
+  /**
+   * Chaîne de modèles Gemini, séparés par des virgules. Essayés dans l'ordre ;
+   * quand un modèle a épuisé son quota du jour, on passe au suivant.
+   * Défaut : voir DEFAULT_MODEL_CHAIN dans gemini.ts.
+   */
   GEMINI_MODEL?: string;
   /** Rétention des sessions terminées/expirées, en heures (défaut 24, borné 1..720). */
   RETENTION_HOURS?: string;
