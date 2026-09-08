@@ -5,9 +5,10 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : MVP complet + 3 itérations de retours terrain.** Backend
-déployé (Worker `90e9aa76`), **version web déployée** (`lingolink-web.pages.dev`),
-APK `build-output/LingoLink.apk` à jour, app iOS sur simulateur.
+**État au 2026-09-08 : MVP complet + 4 itérations de retours terrain.** Backend
+déployé (Worker `90e9aa76`, inchangé itér. 4), **version web redéployée**
+(`lingolink-web.pages.dev`), APK `build-output/LingoLink.apk` à jour (itér. 4),
+app iOS sur simulateur.
 **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
 rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
@@ -30,13 +31,31 @@ Backend redéployé (version `e45159dd`).
 
 **Itération 2026-09-08 (3) :**
 6. **Traduction phrase-par-phrase** (VAD léger, `use-audio-capture.ts`) : pendant
-   qu'on maintient le bouton, coupe le segment à chaque pause + envoi/traduction
+   l'enregistrement, coupe le segment à chaque pause + envoi/traduction
    immédiate → un long monologue défile traduit au fil de l'eau. Coupe aussi à
    12 s. Vrai temps-réel bidi (Gemini Live) = toujours reporté.
 7. **Version web** « rejoindre + converser » → Cloudflare **Pages**
    `lingolink-web.pages.dev` (§ Version web). La page `/join` propose
    « Continuer dans le navigateur » pour ceux sans l'app.
 Backend redéployé (version `90e9aa76`).
+
+**Itération 2026-09-08 (4) — retours terrain :**
+8. **Invitation par message = lien seul, aucun code.** `host.shareMessage` ne
+   contient plus `Code : {code}` (le code reste affiché sous le QR pour la saisie
+   manuelle web en secours). Capture du token de jointure durcie : plus
+   conditionnée à l'état de connexion (`useDeepLinkCapture` dans `_layout.tsx`) —
+   sur le web `Linking.useURL()` pouvait se résoudre après la connexion invité et
+   l'utilisateur retombait sur la saisie de code.
+9. **Traduction cassée depuis le web** : `expo-audio` produit un `blob:` (webm/opus
+   sur Chrome, mp4 sur Safari) et `expo-file-system` n'existe pas sur le web →
+   l'audio partait étiqueté `audio/mp4` alors que c'était du webm. Fix :
+   `src/services/conversations/read-audio.web.ts` lit le blob + son vrai
+   `blob.type`. Gemini accepte `audio/webm`.
+10. **Bouton micro = appui unique** (start/stop) au lieu de maintenir : 1er tap
+   démarre, on parle librement (phrases traduites au fil de l'eau via le VAD),
+   2e tap termine. `conversation/[id].tsx` (`toggleRecord`), clés i18n
+   `conv.talk` / `conv.stopTalk`. Plus fiable, surtout sur le web (souris).
+Pas de redéploiement backend (tout côté client). Web redéployé.
 
 ## Contraintes imposées par l'utilisateur
 
@@ -196,13 +215,21 @@ Better Auth garde son rate limiting intégré côté `/api/auth/*`.
 
 ## Capture audio / VAD
 
-`src/features/conversation/use-audio-capture.ts` : push-to-talk **avec
-segmentation automatique**. Tant que le bouton est maintenu, un poll (~140 ms)
-lit `recorder.getStatus().metering` ; après ≥1,1 s de parole suivie de ~850 ms
-sous `-40 dBFS`, le segment est coupé → `onSegment()` (envoi + traduction
-immédiate) → nouveau segment sans relâcher. Coupe forcée à 12 s. `stop()` renvoie
-le dernier segment. `conversation/[id].tsx` : `sendSegment()` partagé, compteur
-`inFlight` (plusieurs envois en parallèle), bouton actif pendant l'enregistrement.
+`src/features/conversation/use-audio-capture.ts` : capture **avec segmentation
+automatique**. Bouton **appui unique** (start/stop) : 1er tap → `capture.start()`,
+2e tap → `capture.stop()` (`conversation/[id].tsx` `toggleRecord`, état local
+`recording`, `micBusyRef` anti-double-tap, `capture.cancel()` au démontage).
+Pendant l'enregistrement, un poll (~140 ms) lit `recorder.getStatus().metering` ;
+après ≥1,1 s de parole suivie de ~850 ms sous `-40 dBFS`, le segment est coupé →
+`onSegment()` (envoi + traduction immédiate) → nouveau segment. Coupe forcée à
+12 s. `stop()` renvoie le dernier segment. `sendSegment()` partagé, compteur
+`inFlight` (plusieurs envois en parallèle).
+
+**Upload audio — spécifique plateforme** : `src/services/conversations/read-audio.ts`
+(natif : `expo-file-system` lit le fichier local, mime déduit de l'extension) vs
+`read-audio.web.ts` (web : `fetch(blob:)` → `blob.arrayBuffer()` + **vrai**
+`blob.type`). Indispensable sur le web où `expo-audio` rend un `blob:` webm/opus
+et où deviner le mime donnait `audio/mp4` → Gemini n'arrivait pas à transcrire.
 
 ## Liens de partage / deep links
 
@@ -219,6 +246,13 @@ le dernier segment. `conversation/[id].tsx` : `sendSegment()` partagé, compteur
   `lingolink-api.ichigo35.workers.dev`, `pathPrefix /join`). `src/app/+native-intent.ts`
   ramène l'URL HTTPS entrante au chemin interne `/join/<token>`. Le QR encode
   aussi cette URL HTTPS (toujours scannable, `extractJoinToken` gère les 2 formes).
+- **Le lien suffit, aucun code.** `host.shareMessage` (i18n) ne met plus le
+  `shortCode` dans le message partagé. `useDeepLinkCapture` (`_layout.tsx`)
+  mémorise le token quel que soit l'état d'auth (avant : conditionné à
+  `!isAuthenticated` → perdu sur le web quand `Linking.useURL()` se résolvait
+  après la connexion invité, d'où retour à la saisie manuelle). `JoinScreen`
+  efface le token en attente à son montage (pas de boucle). Le code reste
+  affiché sous le QR (`session/host.tsx`) pour la saisie manuelle web en secours.
 - **iOS Universal Links** : pas fait (besoin d'un Team ID Apple / compte
   Developer). La page de rebond couvre iOS en attendant (tap Safari → scheme).
 
@@ -244,9 +278,12 @@ session / contacts / proximité / Google sur le web.
   Auth + bouton « Continuer dans le navigateur » de la page `/join`.
 - **Écrans gardés** `Platform.OS === 'web'` : `welcome` (invité seul),
   `index` (carte « Rejoindre » seule), `scan` (saisie de code, pas de `CameraView`).
-- Le VAD (`use-audio-capture`) dépend du niveau `metering` : indisponible sur
-  certains navigateurs → sur le web, seule la coupe à 12 s + le relâchement
-  s'appliquent (dégradation acceptable).
+- Le VAD (`use-audio-capture`) dépend du niveau `metering` (AudioContext
+  analyser) : dispo sur Chrome/Firefox, plus incertain ailleurs → au pire seule
+  la coupe à 12 s + le 2e tap s'appliquent (dégradation acceptable).
+- **Audio web** : `read-audio.web.ts` envoie le blob avec son vrai `blob.type`
+  (`audio/webm` sur Chrome). Étape passée : mime forcé à `audio/mp4` → échec de
+  transcription Gemini.
 
 ## Rétention (cron)
 

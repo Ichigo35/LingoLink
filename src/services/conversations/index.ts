@@ -4,20 +4,12 @@
  * cookie de session Better Auth.
  */
 
-import * as FileSystem from 'expo-file-system/legacy';
-
 import type { LanguageCode } from '@/config/languages';
 import { apiRequest } from '@/lib/api-client';
 import { getAuthCookie } from '@/lib/auth-client';
 import type { ConnectionMethod, ConversationMessage, ConversationSession } from '@/types';
 
-function mimeForUri(uri: string): string {
-  const ext = uri.split('.').pop()?.toLowerCase();
-  if (ext === 'wav') return 'audio/wav';
-  if (ext === 'caf') return 'audio/x-caf';
-  if (ext === 'aac') return 'audio/aac';
-  return 'audio/mp4';
-}
+import { readAudioForUpload } from './read-audio';
 
 async function authHeader(): Promise<string | null> {
   return (await getAuthCookie()) ?? null;
@@ -114,14 +106,14 @@ export const conversationsService = {
     audioUri: string,
     clientId: string,
   ): Promise<ConversationMessage> {
-    const audioBase64 = await FileSystem.readAsStringAsync(audioUri, { encoding: 'base64' });
+    const { audioBase64, mimeType } = await readAudioForUpload(audioUri);
     const { message } = await apiRequest<{ message: ConversationMessage }>(
       `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
       {
         method: 'POST',
         cookie: await authHeader(),
         timeoutMs: 45_000,
-        body: { audioBase64, mimeType: mimeForUri(audioUri), clientId },
+        body: { audioBase64, mimeType, clientId },
       },
     );
     return message;

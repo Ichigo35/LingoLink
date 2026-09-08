@@ -91,7 +91,7 @@ export default function HostSessionScreen() {
   async function shareLink() {
     if (!session) return;
     await Share.share({
-      message: t('host.shareMessage', { url: session.joinUrl, code: session.shortCode }),
+      message: t('host.shareMessage', { url: session.joinUrl }),
     });
   }
 

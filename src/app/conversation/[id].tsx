@@ -36,6 +36,9 @@ export default function ConversationScreen() {
   const [pending, setPending] = useState<ConversationMessage[]>([]);
   const [inFlight, setInFlight] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
+  /** Enregistrement en cours (appui unique : 1er tap démarre, 2e tap termine). */
+  const [recording, setRecording] = useState(false);
+  const micBusyRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   /** true dès que l'utilisateur local déclenche lui-même la sortie. */
   const leavingRef = useRef(false);
@@ -93,17 +96,32 @@ export default function ConversationScreen() {
     [id, session, myLang, otherLang, user?.id, t],
   );
 
-  const onRecordStart = useCallback(async () => {
-    setMicError(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    const ok = await capture.start(sendSegment);
-    if (!ok) setMicError(t('conv.micNotAllowed'));
-  }, [capture, sendSegment, t]);
+  const toggleRecord = useCallback(async () => {
+    if (micBusyRef.current) return;
+    micBusyRef.current = true;
+    try {
+      if (recording) {
+        setRecording(false);
+        const segment = await capture.stop();
+        if (segment) void sendSegment(segment);
+      } else {
+        setMicError(null);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        const ok = await capture.start(sendSegment);
+        if (ok) setRecording(true);
+        else setMicError(t('conv.micNotAllowed'));
+      }
+    } finally {
+      micBusyRef.current = false;
+    }
+  }, [recording, capture, sendSegment, t]);
 
-  const onRecordStop = useCallback(async () => {
-    const segment = await capture.stop();
-    if (segment) void sendSegment(segment);
-  }, [capture, sendSegment]);
+  // Coupe proprement l'enregistrement si l'écran est quitté pendant la parole.
+  const captureRef = useRef(capture);
+  useEffect(() => {
+    captureRef.current = capture;
+  });
+  useEffect(() => () => void captureRef.current.cancel(), []);
 
   async function leave() {
     leavingRef.current = true;
@@ -225,19 +243,18 @@ export default function ConversationScreen() {
           <Button label={t('common.home')} onPress={() => router.replace('/')} />
         ) : (
           <Pressable
-            onPressIn={onRecordStart}
-            onPressOut={onRecordStop}
+            onPress={toggleRecord}
             disabled={!active}
             style={[
               styles.mic,
               {
-                backgroundColor: capture.isRecording ? theme.danger : theme.tint,
+                backgroundColor: recording ? theme.danger : theme.tint,
                 opacity: !active ? 0.5 : 1,
               },
             ]}>
-            {capture.isRecording ? (
+            {recording ? (
               <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
-                {t('conv.release')}
+                {t('conv.stopTalk')}
               </ThemedText>
             ) : inFlight > 0 ? (
               <View style={styles.micRow}>
@@ -248,7 +265,7 @@ export default function ConversationScreen() {
               </View>
             ) : (
               <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
-                {t('conv.hold')}
+                {t('conv.talk')}
               </ThemedText>
             )}
           </Pressable>

@@ -26,18 +26,22 @@ import { usePendingJoinStore } from '@/stores/pending-join-store';
 const PUBLIC_SEGMENTS = ['welcome'];
 
 /**
- * Capture un deep link `lingolink://join/<token>` reçu alors que l'utilisateur
- * n'est pas connecté : le token est mémorisé pour reprendre après auth.
- * (Quand l'utilisateur est déjà connecté, expo-router route directement.)
+ * Capture un lien de jointure entrant (`lingolink://join/<token>` ou l'URL HTTPS
+ * `.../join/<token>`) : le token est mémorisé pour reprendre après l'auth.
+ *
+ * On ne conditionne pas la capture à l'état de connexion : sur le web,
+ * `Linking.useURL()` peut se résoudre après la connexion invité, et sans le
+ * token mémorisé l'utilisateur retombait sur la saisie manuelle d'un code.
+ * `JoinScreen` efface le token en attente à son montage → pas de boucle.
  */
-function useDeepLinkCapture(isAuthenticated: boolean) {
+function useDeepLinkCapture() {
   const incomingUrl = Linking.useURL();
   const setPending = usePendingJoinStore((s) => s.set);
   useEffect(() => {
-    if (!incomingUrl || isAuthenticated) return;
+    if (!incomingUrl) return;
     const token = extractJoinToken(incomingUrl);
     if (token) setPending(token);
-  }, [incomingUrl, isAuthenticated, setPending]);
+  }, [incomingUrl, setPending]);
 }
 
 function useAuthRouting() {
@@ -46,7 +50,7 @@ function useAuthRouting() {
   const router = useRouter();
   const pendingToken = usePendingJoinStore((s) => s.token);
 
-  useDeepLinkCapture(isAuthenticated);
+  useDeepLinkCapture();
 
   useEffect(() => {
     if (isLoading) return;

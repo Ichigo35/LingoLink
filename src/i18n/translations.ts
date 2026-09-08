@@ -116,7 +116,7 @@ export const TRANSLATIONS = {
     'host.linkCopied': '✓ Lien copié',
     'host.copyLink': 'Copier le lien',
     'host.shareMessage':
-      'Rejoignez ma conversation Lingo Link : {url}\nCode : {code}',
+      'Rejoignez ma conversation Lingo Link : {url}\n\nOuvrez simplement ce lien, aucun code à saisir.',
 
     'join.invitationUnavailable': 'Invitation indisponible',
     'join.notExist': 'Cette invitation n’existe pas.',
@@ -195,8 +195,8 @@ export const TRANSLATIONS = {
     'invite.join': 'Rejoindre',
     'invite.decline': 'Refuser',
 
-    'conv.hold': '🎤 Maintenir pour parler',
-    'conv.release': '● Relâchez pour envoyer',
+    'conv.talk': '🎤 Parler',
+    'conv.stopTalk': '● Terminer',
     'conv.translating': 'Traduction…',
     'conv.listening': 'Écoute…',
     'conv.online': 'En ligne',
@@ -205,7 +205,7 @@ export const TRANSLATIONS = {
     'conv.ended': 'Terminée',
     'conv.leave': 'Quitter',
     'conv.end': 'Terminer',
-    'conv.emptyHint': 'Maintenez le bouton et parlez.',
+    'conv.emptyHint': 'Touchez le bouton et parlez. Touchez à nouveau pour terminer.',
     'conv.direct': '● direct',
     'conv.offline': '○ hors ligne',
     'conv.you': 'Vous',
@@ -337,7 +337,7 @@ export const TRANSLATIONS = {
     'host.linkCopied': '✓ Link copied',
     'host.copyLink': 'Copy the link',
     'host.shareMessage':
-      'Join my Lingo Link conversation: {url}\nCode: {code}',
+      'Join my Lingo Link conversation: {url}\n\nJust open this link — no code to enter.',
 
     'join.invitationUnavailable': 'Invitation unavailable',
     'join.notExist': 'This invitation does not exist.',
@@ -416,8 +416,8 @@ export const TRANSLATIONS = {
     'invite.join': 'Join',
     'invite.decline': 'Decline',
 
-    'conv.hold': '🎤 Hold to talk',
-    'conv.release': '● Release to send',
+    'conv.talk': '🎤 Talk',
+    'conv.stopTalk': '● Finish',
     'conv.translating': 'Translating…',
     'conv.listening': 'Listening…',
     'conv.online': 'Online',
@@ -426,7 +426,7 @@ export const TRANSLATIONS = {
     'conv.ended': 'Ended',
     'conv.leave': 'Leave',
     'conv.end': 'End',
-    'conv.emptyHint': 'Hold the button and speak.',
+    'conv.emptyHint': 'Tap the button and speak. Tap again to finish.',
     'conv.direct': '● live',
     'conv.offline': '○ offline',
     'conv.you': 'You',
