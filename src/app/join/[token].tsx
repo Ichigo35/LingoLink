@@ -9,6 +9,7 @@ import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { extractJoinToken, formatCountdown, secondsUntil } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import { usePendingJoinStore } from '@/stores/pending-join-store';
@@ -27,6 +28,7 @@ export default function JoinScreen() {
   const token = extractJoinToken(String(params.token ?? '')) ?? String(params.token ?? '');
   const router = useRouter();
   const theme = useTheme();
+  const t = useT();
   const setSession = useSessionStore((s) => s.setSession);
   const clearPending = usePendingJoinStore((s) => s.clear);
 
@@ -50,15 +52,15 @@ export default function JoinScreen() {
         if (!cancelled) {
           setError(
             e instanceof ApiRequestError && e.status === 404
-              ? 'Cette invitation n’existe pas.'
-              : 'Impossible de lire l’invitation.',
+              ? t('join.notExist')
+              : t('join.cannotRead'),
           );
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [token, clearPending]);
+  }, [token, clearPending, t]);
 
   useEffect(() => {
     if (remaining == null) return;
@@ -80,19 +82,19 @@ export default function JoinScreen() {
       const msg =
         e instanceof ApiRequestError
           ? {
-              expired: 'Cette invitation a expiré.',
-              not_found: 'Cette invitation n’existe pas.',
-              not_joinable: 'Cette conversation n’est plus disponible.',
-              own_session: 'C’est votre propre invitation.',
+              expired: t('join.expired'),
+              not_found: t('join.notExist'),
+              not_joinable: t('join.notJoinable'),
+              own_session: t('join.ownSession'),
             }[e.code] ?? e.message
-          : 'Impossible de rejoindre.';
+          : t('join.cannotJoin');
       setError(msg);
       setJoining(false);
     }
   }
 
   const expired = preview?.status === 'expired' || remaining === 0;
-  const shownError = !token ? 'Lien d’invitation invalide.' : error;
+  const shownError = !token ? t('join.invalidLink') : error;
 
   return (
     <Screen center>
@@ -100,17 +102,17 @@ export default function JoinScreen() {
 
       {shownError ? (
         <>
-          <ThemedText style={styles.title}>Invitation indisponible</ThemedText>
+          <ThemedText style={styles.title}>{t('join.invitationUnavailable')}</ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.center}>
             {shownError}
           </ThemedText>
-          <Button label="Accueil" onPress={() => router.replace('/')} style={styles.cta} />
+          <Button label={t('common.home')} onPress={() => router.replace('/')} style={styles.cta} />
         </>
       ) : !preview ? (
         <ActivityIndicator color={theme.tint} style={{ marginTop: Spacing.four }} />
       ) : (
         <>
-          <ThemedText style={styles.title}>Rejoindre la conversation</ThemedText>
+          <ThemedText style={styles.title}>{t('join.title')}</ThemedText>
           <View style={[styles.langCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <ThemedText style={styles.langs}>
               {isLanguageCode(preview.creatorLanguage)
@@ -124,22 +126,22 @@ export default function JoinScreen() {
           </View>
           {expired ? (
             <ThemedText style={[styles.center, { color: theme.danger }]}>
-              Cette invitation a expiré.
+              {t('join.expired')}
             </ThemedText>
           ) : remaining != null ? (
             <ThemedText themeColor="textSecondary" style={styles.center}>
-              Expire dans {formatCountdown(remaining)}
+              {t('join.expiresIn', { time: formatCountdown(remaining) })}
             </ThemedText>
           ) : null}
 
           <Button
-            label="Rejoindre"
+            label={t('join.join')}
             onPress={join}
             loading={joining}
             disabled={expired || !preview.joinable}
             style={styles.cta}
           />
-          <Button label="Annuler" variant="ghost" onPress={() => router.replace('/')} />
+          <Button label={t('common.cancel')} variant="ghost" onPress={() => router.replace('/')} />
         </>
       )}
     </Screen>

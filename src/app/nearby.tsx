@@ -10,6 +10,7 @@ import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { type NearbyUser, nearbyService } from '@/services/nearby';
 
@@ -19,6 +20,7 @@ const REVISIBLE_MS = 90_000;
 export default function NearbyScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const { needsOnboarding } = useAuth();
 
   const [visible, setVisible] = useState(false);
@@ -42,7 +44,7 @@ export default function NearbyScreen() {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') {
-        Alert.alert('Localisation requise', 'Autorisez la localisation pour être visible à proximité.');
+        Alert.alert(t('nearby.locationRequired'), t('nearby.locationRequiredText'));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -53,7 +55,7 @@ export default function NearbyScreen() {
       setVisible(true);
       poll();
     } catch (e) {
-      Alert.alert('Erreur', e instanceof ApiRequestError ? e.message : 'Impossible de vous rendre visible');
+      Alert.alert(t('common.error'), e instanceof ApiRequestError ? e.message : t('nearby.visibleError'));
     } finally {
       setBusy(false);
     }
@@ -95,12 +97,12 @@ export default function NearbyScreen() {
       const msg =
         e instanceof ApiRequestError
           ? {
-              too_soon: 'Vous avez déjà envoyé une demande à cette personne.',
-              not_visible: 'Cette personne n’est plus disponible.',
-              same_language: 'Vous parlez la même langue.',
+              too_soon: t('nearby.tooSoon'),
+              not_visible: t('nearby.notVisible'),
+              same_language: t('nearby.sameLanguage'),
             }[e.code] ?? e.message
-          : 'Demande impossible';
-      Alert.alert('Impossible', msg);
+          : t('nearby.requestFailed');
+      Alert.alert(t('nearby.cannotConnect'), msg);
     } finally {
       setRequesting(null);
     }
@@ -110,7 +112,7 @@ export default function NearbyScreen() {
     return (
       <Screen center>
         <ThemedText themeColor="textSecondary" style={styles.center}>
-          Choisissez d’abord votre langue dans le profil.
+          {t('nearby.onboardingFirst')}
         </ThemedText>
       </Screen>
     );
@@ -120,17 +122,15 @@ export default function NearbyScreen() {
     <Screen scroll>
       <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
         <ThemedText style={styles.cardTitle}>
-          {visible ? '📍 Vous êtes visible' : 'Découverte de proximité'}
+          {visible ? t('nearby.visibleTitle') : t('nearby.discoveryTitle')}
         </ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.cardText}>
-          {visible
-            ? 'Les personnes tout près peuvent vous envoyer une demande de conversation. Vous redevenez invisible en quittant cet écran.'
-            : 'Rendez-vous visible pour que des personnes physiquement proches puissent démarrer une conversation avec vous. Votre position exacte n’est jamais partagée.'}
+          {visible ? t('nearby.visibleText') : t('nearby.discoveryText')}
         </ThemedText>
         {visible ? (
-          <Button label="Me rendre invisible" variant="danger" onPress={disable} />
+          <Button label={t('nearby.goInvisible')} variant="danger" onPress={disable} />
         ) : (
-          <Button label="Me rendre visible à proximité" onPress={enable} loading={busy} />
+          <Button label={t('nearby.goVisible')} onPress={enable} loading={busy} />
         )}
       </View>
 
@@ -138,7 +138,7 @@ export default function NearbyScreen() {
         users.length === 0 ? (
           <View style={styles.emptyRow}>
             <ActivityIndicator color={theme.tint} />
-            <ThemedText themeColor="textSecondary">Recherche autour de vous…</ThemedText>
+            <ThemedText themeColor="textSecondary">{t('nearby.searching')}</ThemedText>
           </View>
         ) : (
           users.map((u) => (
@@ -152,7 +152,7 @@ export default function NearbyScreen() {
                 </ThemedText>
               </View>
               <Button
-                label="Se connecter"
+                label={t('nearby.connect')}
                 onPress={() => connect(u)}
                 loading={requesting === u.profileId}
               />

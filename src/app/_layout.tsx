@@ -20,6 +20,7 @@ import { extractJoinToken } from '@/config/session';
 import { useAppRealtime } from '@/hooks/use-app-realtime';
 import { useAuth } from '@/hooks/use-auth';
 import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { usePendingJoinStore } from '@/stores/pending-join-store';
 
 const PUBLIC_SEGMENTS = ['welcome'];
@@ -68,6 +69,7 @@ function useAuthRouting() {
 
 function RootNavigator() {
   const theme = useTheme();
+  const t = useT();
   const { isLoading } = useAuthRouting();
   const { isAuthenticated } = useAuth();
   useAppRealtime(isAuthenticated);
@@ -98,16 +100,16 @@ function RootNavigator() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
           name="new-conversation"
-          options={{ title: 'Nouvelle conversation', presentation: 'modal' }}
+          options={{ title: t('nav.newConversation'), presentation: 'modal' }}
         />
-        <Stack.Screen name="session/host" options={{ title: 'Inviter', presentation: 'modal' }} />
-        <Stack.Screen name="scan" options={{ title: 'Scanner un QR' }} />
+        <Stack.Screen name="session/host" options={{ title: t('nav.invite'), presentation: 'modal' }} />
+        <Stack.Screen name="scan" options={{ title: t('nav.scan') }} />
         <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
-        <Stack.Screen name="contacts" options={{ title: 'Mes contacts' }} />
-        <Stack.Screen name="nearby" options={{ title: 'Personnes à proximité' }} />
-        <Stack.Screen name="profile" options={{ title: 'Profil' }} />
-        <Stack.Screen name="settings" options={{ title: 'Paramètres' }} />
-        <Stack.Screen name="ai-test" options={{ title: 'Test IA' }} />
+        <Stack.Screen name="contacts" options={{ title: t('nav.contacts') }} />
+        <Stack.Screen name="nearby" options={{ title: t('nav.nearby') }} />
+        <Stack.Screen name="profile" options={{ title: t('nav.profile') }} />
+        <Stack.Screen name="settings" options={{ title: t('nav.settings') }} />
+        <Stack.Screen name="ai-test" options={{ title: t('nav.aiTest') }} />
         <Stack.Screen
           name="conversation/[id]"
           options={{ headerShown: false, gestureEnabled: false }}

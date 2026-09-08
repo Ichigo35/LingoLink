@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Colors, Spacing } from '@/constants/theme';
+import { translate } from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -30,11 +31,15 @@ export class ErrorBoundary extends Component<Props, State> {
     const c = Colors.light;
     return (
       <View style={[styles.container, { backgroundColor: c.background }]}>
-        <ThemedText style={styles.title}>Une erreur est survenue</ThemedText>
+        <ThemedText style={styles.title}>{translate('error.title')}</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.text}>
-          L’application a rencontré un problème inattendu.
+          {translate('error.body')}
         </ThemedText>
-        <Button label="Réessayer" onPress={() => this.setState({ error: null })} style={styles.cta} />
+        <Button
+          label={translate('common.retry')}
+          onPress={() => this.setState({ error: null })}
+          style={styles.cta}
+        />
       </View>
     );
   }

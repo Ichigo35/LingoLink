@@ -10,12 +10,14 @@ import { formatLanguage, type LanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { authClient } from '@/lib/auth-client';
 import { authService } from '@/services/auth';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const { user, isGuest, preferredLanguage } = useAuth();
 
   const [name, setName] = useState('');
@@ -53,10 +55,10 @@ export default function ProfileScreen() {
         const currentUsername = (user as { username?: string | null } | null)?.username ?? '';
         if (!check.available && trimmedUsername !== currentUsername) {
           Alert.alert(
-            'Nom d’utilisateur indisponible',
+            t('onboarding.usernameUnavailable'),
             check.reason === 'format'
-              ? '3 à 20 caractères : minuscules, chiffres, tiret bas.'
-              : 'Ce nom est déjà pris.',
+              ? t('profile.usernameFormat')
+              : t('profile.usernameTaken'),
           );
           return;
         }
@@ -67,9 +69,9 @@ export default function ProfileScreen() {
         ...(language ? { preferredLanguage: language } : {}),
       });
       await authClient.getSession({ query: { disableCookieCache: true } });
-      Alert.alert('Profil enregistré');
+      Alert.alert(t('profile.saved'));
     } catch (e) {
-      Alert.alert('Erreur', e instanceof Error ? e.message : 'Échec de l’enregistrement');
+      Alert.alert(t('common.error'), e instanceof Error ? e.message : t('profile.saveError'));
     } finally {
       setSaving(false);
     }
@@ -79,7 +81,7 @@ export default function ProfileScreen() {
     try {
       await authService.signInWithGoogle();
     } catch (e) {
-      Alert.alert('Erreur', e instanceof Error ? e.message : 'Connexion Google impossible');
+      Alert.alert(t('common.error'), e instanceof Error ? e.message : t('profile.googleError'));
     }
   }
 
@@ -92,23 +94,25 @@ export default function ProfileScreen() {
     <Screen scroll>
       <View style={[styles.badge, { backgroundColor: theme.backgroundElement }]}>
         <ThemedText style={styles.badgeText}>
-          {isGuest ? '👤 Compte invité' : `✅ Connecté${user?.email ? ` — ${user.email}` : ''}`}
+          {isGuest
+            ? t('profile.guestBadge')
+            : `${t('profile.connectedBadge')}${user?.email ? ` — ${user.email}` : ''}`}
         </ThemedText>
         {isGuest ? (
           <ThemedText themeColor="textSecondary" style={styles.badgeHint}>
-            Vos données sont temporaires. Reliez un compte Google pour les conserver.
+            {t('profile.guestHint')}
           </ThemedText>
         ) : null}
       </View>
 
       <View style={styles.block}>
         <ThemedText themeColor="textSecondary" style={styles.label}>
-          Nom affiché
+          {t('profile.displayName')}
         </ThemedText>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Votre prénom"
+          placeholder={t('profile.displayNamePlaceholder')}
           placeholderTextColor={theme.textSecondary}
           style={[styles.input, inputTheme(theme)]}
         />
@@ -117,7 +121,7 @@ export default function ProfileScreen() {
       {!isGuest ? (
         <View style={styles.block}>
           <ThemedText themeColor="textSecondary" style={styles.label}>
-            Nom d’utilisateur
+            {t('profile.username')}
           </ThemedText>
           <TextInput
             value={username}
@@ -132,21 +136,21 @@ export default function ProfileScreen() {
       ) : null}
 
       <View style={styles.block}>
-        <LanguageSelector label="Ma langue principale" value={language} onChange={setLanguage} />
+        <LanguageSelector label={t('common.mainLanguage')} value={language} onChange={setLanguage} />
         {language ? (
           <ThemedText themeColor="textSecondary" style={styles.hint}>
-            Actuelle : {formatLanguage(language)}
+            {t('profile.current', { language: formatLanguage(language) })}
           </ThemedText>
         ) : null}
       </View>
 
-      <Button label="Enregistrer" onPress={save} loading={saving} disabled={!dirty} style={styles.cta} />
+      <Button label={t('common.save')} onPress={save} loading={saving} disabled={!dirty} style={styles.cta} />
 
       {isGuest && googleEnabled ? (
-        <Button label="Relier un compte Google" icon="G" variant="secondary" onPress={linkGoogle} />
+        <Button label={t('profile.linkGoogle')} icon="G" variant="secondary" onPress={linkGoogle} />
       ) : null}
 
-      <Button label="Se déconnecter" variant="ghost" onPress={signOut} style={styles.signOut} />
+      <Button label={t('profile.signOut')} variant="ghost" onPress={signOut} style={styles.signOut} />
     </Screen>
   );
 }

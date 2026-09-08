@@ -5,10 +5,12 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-07 : les 10 phases du plan sont terminées, le backend est
+**État au 2026-09-08 : les 10 phases du plan sont terminées, le backend est
 déployé, l'APK Android est buildé, l'app tourne sur simulateur iOS.** Le MVP est
-fonctionnel de bout en bout. Suite = itérations / corrections / traduction i18n
-des écrans secondaires.
+fonctionnel de bout en bout. **i18n (fr/en) : TOUS les écrans sont traduits** —
+parcours principal + écrans secondaires (profil, contacts, proximité, réglages,
+onboarding, host, join, scan, modale d'invitation, error-boundary, titres de la
+nav). Suite = itérations / corrections / polish visuel.
 
 ## Contraintes imposées par l'utilisateur
 
@@ -104,6 +106,17 @@ server/            backend Cloudflare Worker (voir server/README.md pour les end
 `lo, fr, en, th, zh` — UNIQUEMENT dans `src/config/languages.ts` (app) et
 `server/src/languages.ts` (miroir). Jamais en dur ailleurs.
 
+## i18n de l'interface (§18)
+
+Langues d'UI : **fr (référence) + en**. Tout passe par `src/i18n/` :
+`translations.ts` (objet `TRANSLATIONS.{fr,en}`, `TranslationKey` dérive de `fr`
+donc les 2 blocs doivent avoir exactement les mêmes clés) + `useT()` (hook) /
+`translate()` (hors React, ex. `error-boundary`). Interpolation :
+`t('host.expiresIn', { time })` remplace `{time}` dans la chaîne.
+**Jamais de texte visible en dur dans un écran** — ajouter une clé fr + en.
+Choix de langue : écran Réglages (`uiLanguage` dans `settings-store`, persisté).
+Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
+
 ## Règles de travail
 
 1. Après code : `npx tsc --noEmit` (app) + `cd server && npx tsc --noEmit` +
@@ -136,8 +149,9 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 
 ## Reste à faire (idées)
 
-- i18n des écrans secondaires (profil, contacts, proximité, réglages, host, join).
+- ~~i18n des écrans secondaires~~ ✅ fait (2026-09-08).
 - Icône/splash custom (placeholders Expo actuels).
+- ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
 - APK signé release (clé de prod) si distribution hors test.
 - `preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`.
 - Rétention : purge des messages/sessions terminées (cron).

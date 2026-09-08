@@ -12,6 +12,7 @@ import { formatCountdown, secondsUntil } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import { useNewConversationStore } from '@/stores/new-conversation-store';
@@ -20,6 +21,7 @@ import type { ConversationSession } from '@/types';
 export default function HostSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const t = useT();
   const { myLanguage, otherLanguage, method } = useNewConversationStore();
 
   const [session, setSession] = useState<ConversationSession | null>(null);
@@ -49,11 +51,11 @@ export default function HostSessionScreen() {
       setSession(created);
       setRemaining(secondsUntil(created.expiresAt));
     } catch (e) {
-      setError(e instanceof ApiRequestError ? e.message : 'Création impossible');
+      setError(e instanceof ApiRequestError ? e.message : t('host.createFailed'));
     } finally {
       creatingRef.current = false;
     }
-  }, [myLanguage, otherLanguage, method, router]);
+  }, [myLanguage, otherLanguage, method, router, t]);
 
   useEffect(() => {
     // Création de la session au montage de l'écran (action asynchrone).
@@ -89,7 +91,7 @@ export default function HostSessionScreen() {
   async function shareLink() {
     if (!session) return;
     await Share.share({
-      message: `Rejoignez ma conversation Lingo Link : ${session.joinUrl}\nCode : ${session.shortCode}`,
+      message: t('host.shareMessage', { url: session.joinUrl, code: session.shortCode }),
     });
   }
 
@@ -103,12 +105,12 @@ export default function HostSessionScreen() {
   if (error) {
     return (
       <Screen center>
-        <ThemedText style={styles.title}>Impossible de créer la session</ThemedText>
+        <ThemedText style={styles.title}>{t('host.createErrorTitle')}</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.center}>
           {error}
         </ThemedText>
-        <Button label="Réessayer" onPress={createSession} style={styles.cta} />
-        <Button label="Retour" variant="ghost" onPress={() => router.back()} />
+        <Button label={t('common.retry')} onPress={createSession} style={styles.cta} />
+        <Button label={t('common.back')} variant="ghost" onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -125,7 +127,7 @@ export default function HostSessionScreen() {
 
   return (
     <Screen scroll>
-      <ThemedText style={styles.title}>Session en attente</ThemedText>
+      <ThemedText style={styles.title}>{t('host.waiting')}</ThemedText>
       {myLanguage && otherLanguage ? (
         <ThemedText themeColor="textSecondary">
           {formatLanguage(myLanguage)} ↔ {formatLanguage(otherLanguage)}
@@ -134,7 +136,7 @@ export default function HostSessionScreen() {
 
       <View style={[styles.qrCard, { backgroundColor: '#FFFFFF', borderColor: theme.border }]}>
         {expired ? (
-          <ThemedText style={{ color: '#0B0C0F' }}>QR expiré</ThemedText>
+          <ThemedText style={{ color: '#0B0C0F' }}>{t('host.qrExpired')}</ThemedText>
         ) : (
           <QRCode
             value={session.joinUrl}
@@ -147,7 +149,7 @@ export default function HostSessionScreen() {
 
       <View style={styles.codeRow}>
         <ThemedText themeColor="textSecondary" style={styles.codeLabel}>
-          Code
+          {t('host.codeLabel')}
         </ThemedText>
         <ThemedText style={styles.code}>{session.shortCode}</ThemedText>
       </View>
@@ -158,35 +160,35 @@ export default function HostSessionScreen() {
           { color: expired ? theme.danger : theme.textSecondary },
         ]}>
         {expired
-          ? 'Cette session a expiré'
-          : `Expire dans ${formatCountdown(remaining ?? 0)}`}
+          ? t('host.sessionExpired')
+          : t('host.expiresIn', { time: formatCountdown(remaining ?? 0) })}
       </ThemedText>
 
       <View style={styles.status}>
         <View style={[styles.dot, { backgroundColor: theme.warning }]} />
         <ThemedText themeColor="textSecondary">
-          En attente que l’autre personne rejoigne…
+          {t('host.waitingForOther')}
         </ThemedText>
       </View>
 
       {expired ? (
-        <Button label="Nouvelle session" onPress={createSession} style={styles.cta} />
+        <Button label={t('host.newSession')} onPress={createSession} style={styles.cta} />
       ) : (
         <>
           <Button
-            label="Partager le lien"
+            label={t('host.shareLink')}
             icon="🔗"
             onPress={shareLink}
             style={styles.cta}
           />
           <Button
-            label={copied ? '✓ Lien copié' : 'Copier le lien'}
+            label={copied ? t('host.linkCopied') : t('host.copyLink')}
             variant="secondary"
             onPress={copyLink}
           />
         </>
       )}
-      <Button label="Annuler" variant="ghost" onPress={cancel} />
+      <Button label={t('common.cancel')} variant="ghost" onPress={cancel} />
     </Screen>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { conversationsService } from '@/services/conversations';
 import { useInboxStore } from '@/stores/inbox-store';
 import { useSessionStore } from '@/stores/session-store';
@@ -18,6 +19,7 @@ import { useSessionStore } from '@/stores/session-store';
 export function ConversationInviteModal() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const invite = useInboxStore((s) => s.pendingInvite);
   const clearInvite = useInboxStore((s) => s.clearInvite);
   const setSession = useSessionStore((s) => s.setSession);
@@ -25,7 +27,7 @@ export function ConversationInviteModal() {
 
   if (!invite) return null;
 
-  const name = invite.from.displayName || invite.from.username || 'Quelqu’un';
+  const name = invite.from.displayName || invite.from.username || t('invite.someone');
   // Depuis le point de vue du destinataire : sa langue = participantLanguage.
   const mine = invite.participantLanguage;
   const theirs = invite.creatorLanguage;
@@ -49,14 +51,14 @@ export function ConversationInviteModal() {
     <Modal transparent animationType="fade" visible onRequestClose={clearInvite}>
       <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}>
-          <ThemedText style={styles.title}>{name} souhaite démarrer une conversation</ThemedText>
+          <ThemedText style={styles.title}>{t('invite.title', { name })}</ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.langs}>
             {isLanguageCode(theirs) ? formatLanguage(theirs) : theirs}
             {'  ↔  '}
             {isLanguageCode(mine) ? formatLanguage(mine) : mine}
           </ThemedText>
-          <Button label="Rejoindre" onPress={accept} loading={joining} style={styles.cta} />
-          <Button label="Refuser" variant="ghost" onPress={clearInvite} />
+          <Button label={t('invite.join')} onPress={accept} loading={joining} style={styles.cta} />
+          <Button label={t('invite.decline')} variant="ghost" onPress={clearInvite} />
         </View>
       </View>
     </Modal>

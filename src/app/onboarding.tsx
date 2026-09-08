@@ -10,12 +10,14 @@ import { DEFAULT_MY_LANGUAGE, type LanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { authService } from '@/services/auth';
 import { authClient } from '@/lib/auth-client';
 
 export default function OnboardingScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const { isGuest } = useAuth();
 
   const [language, setLanguage] = useState<LanguageCode>(DEFAULT_MY_LANGUAGE);
@@ -30,10 +32,10 @@ export default function OnboardingScreen() {
         const check = await authService.isUsernameAvailable(trimmed);
         if (!check.available) {
           Alert.alert(
-            'Nom d’utilisateur indisponible',
+            t('onboarding.usernameUnavailable'),
             check.reason === 'format'
-              ? '3 à 20 caractères : lettres minuscules, chiffres, tiret bas.'
-              : 'Ce nom est déjà pris.',
+              ? t('onboarding.usernameFormat')
+              : t('onboarding.usernameTaken'),
           );
           return;
         }
@@ -45,7 +47,7 @@ export default function OnboardingScreen() {
       await authClient.getSession({ query: { disableCookieCache: true } });
       router.replace('/');
     } catch (e) {
-      Alert.alert('Erreur', e instanceof Error ? e.message : 'Impossible d’enregistrer');
+      Alert.alert(t('common.error'), e instanceof Error ? e.message : t('onboarding.saveError'));
     } finally {
       setSaving(false);
     }
@@ -53,26 +55,24 @@ export default function OnboardingScreen() {
 
   return (
     <Screen scroll>
-      <ThemedText style={styles.h1}>Bienvenue 👋</ThemedText>
-      <ThemedText themeColor="textSecondary">
-        Deux infos et on démarre.
-      </ThemedText>
+      <ThemedText style={styles.h1}>{t('onboarding.title')}</ThemedText>
+      <ThemedText themeColor="textSecondary">{t('onboarding.subtitle')}</ThemedText>
 
       <View style={styles.block}>
-        <LanguageSelector label="Ma langue principale" value={language} onChange={setLanguage} />
+        <LanguageSelector label={t('common.mainLanguage')} value={language} onChange={setLanguage} />
       </View>
 
       {!isGuest ? (
         <View style={styles.block}>
           <ThemedText themeColor="textSecondary" style={styles.label}>
-            Nom d’utilisateur (optionnel)
+            {t('onboarding.usernameLabel')}
           </ThemedText>
           <TextInput
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="ex. jimmy"
+            placeholder={t('onboarding.usernamePlaceholder')}
             placeholderTextColor={theme.textSecondary}
             style={[
               styles.input,
@@ -80,12 +80,12 @@ export default function OnboardingScreen() {
             ]}
           />
           <ThemedText themeColor="textSecondary" style={styles.hint}>
-            Permet à vos contacts de vous retrouver. Modifiable plus tard.
+            {t('onboarding.usernameHint')}
           </ThemedText>
         </View>
       ) : null}
 
-      <Button label="Commencer" onPress={finish} loading={saving} style={styles.cta} />
+      <Button label={t('onboarding.start')} onPress={finish} loading={saving} style={styles.cta} />
     </Screen>
   );
 }

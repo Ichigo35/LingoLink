@@ -9,6 +9,7 @@ import { Screen } from '@/components/ui/screen';
 import { extractJoinToken } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
 import { useSessionStore } from '@/stores/session-store';
@@ -17,6 +18,7 @@ import type { ConversationSession } from '@/types';
 export default function ScanScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const t = useT();
   const [permission, requestPermission] = useCameraPermissions();
   const setSession = useSessionStore((s) => s.setSession);
 
@@ -34,8 +36,8 @@ export default function ScanScreen() {
       setSession(session);
       router.replace(`/conversation/${session.id}`);
     } catch (e) {
-      const msg = e instanceof ApiRequestError ? e.message : 'Impossible de rejoindre';
-      Alert.alert('Connexion impossible', msg);
+      const msg = e instanceof ApiRequestError ? e.message : t('scan.cannotJoin');
+      Alert.alert(t('scan.connectionFailed'), msg);
       lockRef.current = false;
     } finally {
       setBusy(false);
@@ -51,7 +53,7 @@ export default function ScanScreen() {
   function submitCode() {
     const trimmed = code.trim();
     if (trimmed.length < 6) {
-      Alert.alert('Code invalide', 'Saisissez le code affiché sous le QR (ex. 7F29-KP42).');
+      Alert.alert(t('scan.invalidCode'), t('scan.invalidCodeText'));
       return;
     }
     join(() => conversationsService.joinByCode(trimmed));
@@ -60,10 +62,8 @@ export default function ScanScreen() {
   if (mode === 'code') {
     return (
       <Screen scroll>
-        <ThemedText style={styles.h1}>Saisir un code</ThemedText>
-        <ThemedText themeColor="textSecondary">
-          Le code s’affiche sous le QR sur l’autre téléphone.
-        </ThemedText>
+        <ThemedText style={styles.h1}>{t('scan.enterCodeTitle')}</ThemedText>
+        <ThemedText themeColor="textSecondary">{t('scan.enterCodeSub')}</ThemedText>
         <TextInput
           value={code}
           onChangeText={setCode}
@@ -76,25 +76,25 @@ export default function ScanScreen() {
             { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border },
           ]}
         />
-        <Button label="Rejoindre" onPress={submitCode} loading={busy} style={styles.cta} />
-        <Button label="Scanner un QR à la place" variant="ghost" onPress={() => setMode('scan')} />
+        <Button label={t('scan.join')} onPress={submitCode} loading={busy} style={styles.cta} />
+        <Button label={t('scan.scanInstead')} variant="ghost" onPress={() => setMode('scan')} />
       </Screen>
     );
   }
 
   if (!permission) {
-    return <Screen center><ThemedText themeColor="textSecondary">Préparation de la caméra…</ThemedText></Screen>;
+    return <Screen center><ThemedText themeColor="textSecondary">{t('scan.preparingCamera')}</ThemedText></Screen>;
   }
 
   if (!permission.granted) {
     return (
       <Screen center>
-        <ThemedText style={styles.h1}>Caméra requise</ThemedText>
+        <ThemedText style={styles.h1}>{t('scan.cameraRequired')}</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.center}>
-          Autorisez la caméra pour scanner un QR code, ou saisissez le code manuellement.
+          {t('scan.cameraRequiredText')}
         </ThemedText>
-        <Button label="Autoriser la caméra" onPress={requestPermission} style={styles.cta} />
-        <Button label="Saisir un code" variant="secondary" onPress={() => setMode('code')} />
+        <Button label={t('scan.allowCamera')} onPress={requestPermission} style={styles.cta} />
+        <Button label={t('scan.enterCode')} variant="secondary" onPress={() => setMode('code')} />
       </Screen>
     );
   }
@@ -110,9 +110,9 @@ export default function ScanScreen() {
         />
       </View>
       <ThemedText themeColor="textSecondary" style={styles.center}>
-        Visez le QR code affiché sur l’autre téléphone.
+        {t('scan.aim')}
       </ThemedText>
-      <Button label="Saisir un code à la place" variant="secondary" onPress={() => setMode('code')} />
+      <Button label={t('scan.enterCodeInstead')} variant="secondary" onPress={() => setMode('code')} />
     </Screen>
   );
 }

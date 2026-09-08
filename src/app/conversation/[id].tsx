@@ -60,8 +60,8 @@ export default function ConversationScreen() {
     setMicError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const ok = await capture.start();
-    if (!ok) setMicError('Micro non autorisé. Activez-le dans les réglages.');
-  }, [capture]);
+    if (!ok) setMicError(t('conv.micNotAllowed'));
+  }, [capture, t]);
 
   const onRecordStop = useCallback(async () => {
     const segment = await capture.stop();
@@ -89,11 +89,11 @@ export default function ConversationScreen() {
       setPending((p) =>
         p.map((m) => (m.clientId === clientId ? { ...m, status: 'failed' } : m)),
       );
-      setMicError(e instanceof ApiRequestError ? e.message : 'Envoi impossible');
+      setMicError(e instanceof ApiRequestError ? e.message : t('conv.sendFailed'));
     } finally {
       setSending(false);
     }
-  }, [capture, id, session, myLang, otherLang, user?.id]);
+  }, [capture, id, session, myLang, otherLang, user?.id, t]);
 
   async function leave() {
     try {
@@ -107,11 +107,11 @@ export default function ConversationScreen() {
 
   function confirmLeave() {
     Alert.alert(
-      isCreator ? 'Terminer la conversation ?' : 'Quitter la conversation ?',
-      isCreator ? 'La session sera fermée pour les deux.' : 'Vous pourrez en rejoindre une autre.',
+      isCreator ? t('conv.endTitle') : t('conv.leaveTitle'),
+      isCreator ? t('conv.endBody') : t('conv.leaveBody'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: isCreator ? 'Terminer' : 'Quitter', style: 'destructive', onPress: leave },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: isCreator ? t('conv.end') : t('conv.leave'), style: 'destructive', onPress: leave },
       ],
     );
   }
@@ -127,11 +127,11 @@ export default function ConversationScreen() {
   if (!session) {
     return (
       <SafeAreaView style={[styles.fill, styles.center, { backgroundColor: theme.background }]}>
-        <ThemedText style={styles.h1}>Conversation introuvable</ThemedText>
+        <ThemedText style={styles.h1}>{t('conv.notFound')}</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.centerText}>
-          {error ?? 'Cette conversation n’existe plus.'}
+          {error ?? t('conv.notFoundText')}
         </ThemedText>
-        <Button label="Accueil" onPress={() => router.replace('/')} style={{ marginTop: Spacing.four }} />
+        <Button label={t('common.home')} onPress={() => router.replace('/')} style={{ marginTop: Spacing.four }} />
       </SafeAreaView>
     );
   }
@@ -163,7 +163,7 @@ export default function ConversationScreen() {
                   : t('conv.connecting')}
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.rtBadge}>
-            {connected ? '● direct' : '○ hors ligne'}
+            {connected ? t('conv.direct') : t('conv.offline')}
           </ThemedText>
         </View>
         <Pressable onPress={confirmLeave} hitSlop={10}>
@@ -251,12 +251,12 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
         ]}>
         <ThemedText
           style={[styles.bubbleMeta, { color: mine ? theme.tintText : theme.textSecondary }]}>
-          {mine ? `Vous · ${src}` : src}
+          {mine ? `${t('conv.you')} · ${src}` : src}
         </ThemedText>
 
         {failed ? (
           <ThemedText style={{ color: mine ? theme.tintText : theme.danger }}>
-            Échec de la traduction
+            {t('conv.translationFailed')}
           </ThemedText>
         ) : processing && !message.originalTranscript ? (
           <View style={styles.micRow}>
@@ -282,7 +282,7 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
             ) : message.status !== 'completed' ? (
               <ThemedText
                 style={[styles.translating, { color: mine ? theme.tintText : theme.textSecondary }]}>
-                traduction…
+                {t('conv.translatingShort')}
               </ThemedText>
             ) : null}
           </>

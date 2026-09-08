@@ -27,13 +27,13 @@ export default function HomeScreen() {
           <View style={styles.headerActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Profil"
+              accessibilityLabel={t('nav.profile')}
               onPress={() => router.push('/profile')}>
               <ThemedText style={styles.headerIcon}>👤</ThemedText>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Paramètres"
+              accessibilityLabel={t('nav.settings')}
               onPress={() => router.push('/settings')}>
               <ThemedText style={styles.headerIcon}>⚙️</ThemedText>
             </Pressable>
@@ -58,7 +58,7 @@ export default function HomeScreen() {
           onPress={() => router.push(`/conversation/${activeSession.id}`)}
           style={[styles.resume, { backgroundColor: theme.tint }]}>
           <ThemedText style={[styles.resumeText, { color: theme.tintText }]}>
-            ▶︎ Reprendre la conversation
+            {t('home.resume')}
           </ThemedText>
         </Pressable>
       ) : null}

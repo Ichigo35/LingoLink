@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useT, type TranslationKey } from '@/i18n';
 import {
   useSettingsStore,
   type ThemePreference,
   type UiLanguage,
 } from '@/stores/settings-store';
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'system', label: 'Système' },
-  { value: 'light', label: 'Clair' },
-  { value: 'dark', label: 'Sombre' },
+const THEME_OPTIONS: { value: ThemePreference; labelKey: TranslationKey }[] = [
+  { value: 'system', labelKey: 'settings.theme.system' },
+  { value: 'light', labelKey: 'settings.theme.light' },
+  { value: 'dark', labelKey: 'settings.theme.dark' },
 ];
 
 const UI_LANGUAGE_OPTIONS: { value: UiLanguage; label: string }[] = [
@@ -26,17 +27,18 @@ const UI_LANGUAGE_OPTIONS: { value: UiLanguage; label: string }[] = [
 export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const { themePreference, uiLanguage, setThemePreference, setUiLanguage } = useSettingsStore();
 
   return (
     <Screen scroll>
       <View style={styles.group}>
-        <ThemedText style={styles.groupTitle}>Apparence</ThemedText>
+        <ThemedText style={styles.groupTitle}>{t('settings.appearance')}</ThemedText>
         <View style={styles.row}>
           {THEME_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
-              label={opt.label}
+              label={t(opt.labelKey)}
               variant={themePreference === opt.value ? 'primary' : 'secondary'}
               onPress={() => setThemePreference(opt.value)}
               style={styles.flex}
@@ -46,7 +48,7 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.group}>
-        <ThemedText style={styles.groupTitle}>Langue de l’interface</ThemedText>
+        <ThemedText style={styles.groupTitle}>{t('settings.uiLanguage')}</ThemedText>
         <View style={styles.row}>
           {UI_LANGUAGE_OPTIONS.map((opt) => (
             <Button
@@ -59,16 +61,15 @@ export default function SettingsScreen() {
           ))}
         </View>
         <ThemedText themeColor="textSecondary" style={styles.note}>
-          Le parcours principal (accueil, connexion, conversation) est traduit.
-          Les écrans secondaires suivront.
+          {t('settings.uiLanguageNote')}
         </ThemedText>
       </View>
 
       {__DEV__ ? (
         <View style={styles.group}>
-          <ThemedText style={styles.groupTitle}>Développement</ThemedText>
+          <ThemedText style={styles.groupTitle}>{t('settings.dev')}</ThemedText>
           <Button
-            label="Test du pipeline IA"
+            label={t('settings.aiTest')}
             variant="secondary"
             onPress={() => router.push('/ai-test')}
           />
@@ -77,8 +78,7 @@ export default function SettingsScreen() {
 
       <View style={[styles.about, { borderColor: theme.border }]}>
         <ThemedText themeColor="textSecondary" style={styles.note}>
-          Lingo Link — MVP en cours de développement. Base de données : Neon.
-          Traduction : Gemini (via backend sécurisé).
+          {t('settings.about')}
         </ThemedText>
       </View>
     </Screen>

@@ -9,6 +9,7 @@ import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import {
   type Contact,
@@ -21,6 +22,7 @@ import { useInboxStore } from '@/stores/inbox-store';
 export default function ContactsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const t = useT();
   const { isGuest, user } = useAuth();
   const hasUsername = !!(user as { username?: string | null } | null)?.username;
   const contactsVersion = useInboxStore((s) => s.contactsVersion);
@@ -83,12 +85,12 @@ export default function ContactsScreen() {
   async function add(username: string) {
     try {
       const res = await contactsService.sendRequest(username);
-      Alert.alert(res.status === 'accepted' ? 'Contact ajouté' : 'Demande envoyée');
+      Alert.alert(res.status === 'accepted' ? t('contacts.contactAdded') : t('contacts.requestSent'));
       setQuery('');
       setResults([]);
       refresh();
     } catch (e) {
-      Alert.alert('Erreur', e instanceof ApiRequestError ? e.message : 'Échec');
+      Alert.alert(t('common.error'), e instanceof ApiRequestError ? e.message : t('contacts.addError'));
     }
   }
 
@@ -109,8 +111,8 @@ export default function ContactsScreen() {
       router.push(`/conversation/${sessionId}`);
     } catch (e) {
       Alert.alert(
-        'Impossible de démarrer',
-        e instanceof ApiRequestError ? e.message : 'Erreur',
+        t('contacts.startError'),
+        e instanceof ApiRequestError ? e.message : t('common.error'),
       );
     } finally {
       setStarting(null);
@@ -118,10 +120,10 @@ export default function ContactsScreen() {
   }
 
   function confirmRemove(contact: Contact) {
-    Alert.alert('Supprimer le contact ?', contact.displayName ?? contact.username ?? '', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('contacts.removeTitle'), contact.displayName ?? contact.username ?? '', [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await contactsService.remove(contact.id).catch(() => {});
@@ -134,12 +136,11 @@ export default function ContactsScreen() {
   if (isGuest || !hasUsername) {
     return (
       <Screen center>
-        <ThemedText style={styles.h1}>Contacts</ThemedText>
+        <ThemedText style={styles.h1}>{t('contacts.title')}</ThemedText>
         <ThemedText themeColor="textSecondary" style={styles.center}>
-          Créez un compte et choisissez un nom d’utilisateur pour ajouter des
-          contacts. Vous pouvez toujours discuter via QR code ou lien sans compte.
+          {t('contacts.guestInfo')}
         </ThemedText>
-        <Button label="Aller au profil" onPress={() => router.push('/profile')} style={styles.cta} />
+        <Button label={t('contacts.goToProfile')} onPress={() => router.push('/profile')} style={styles.cta} />
       </Screen>
     );
   }
@@ -151,7 +152,7 @@ export default function ContactsScreen() {
         onChangeText={runSearch}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholder="Rechercher un nom d’utilisateur"
+        placeholder={t('contacts.searchPlaceholder')}
         placeholderTextColor={theme.textSecondary}
         style={[
           styles.input,
@@ -171,13 +172,13 @@ export default function ContactsScreen() {
                 : ''}
             </ThemedText>
           </View>
-          <Button label="Ajouter" variant="secondary" onPress={() => add(u.username ?? '')} />
+          <Button label={t('contacts.add')} variant="secondary" onPress={() => add(u.username ?? '')} />
         </View>
       ))}
 
       {requests.length > 0 ? (
         <>
-          <ThemedText style={styles.section}>Demandes reçues</ThemedText>
+          <ThemedText style={styles.section}>{t('contacts.incomingRequests')}</ThemedText>
           {requests.map((r) => (
             <View key={r.id} style={[styles.row, { borderColor: theme.border }]}>
               <View style={styles.rowMain}>
@@ -190,11 +191,11 @@ export default function ContactsScreen() {
               </View>
               <View style={styles.actions}>
                 <Pressable onPress={() => respond(r.id, true)} hitSlop={8}>
-                  <ThemedText style={[styles.accept, { color: theme.positive }]}>Accepter</ThemedText>
+                  <ThemedText style={[styles.accept, { color: theme.positive }]}>{t('contacts.accept')}</ThemedText>
                 </Pressable>
                 <Pressable onPress={() => respond(r.id, false)} hitSlop={8}>
                   <ThemedText style={[styles.decline, { color: theme.textSecondary }]}>
-                    Refuser
+                    {t('contacts.decline')}
                   </ThemedText>
                 </Pressable>
               </View>
@@ -203,12 +204,12 @@ export default function ContactsScreen() {
         </>
       ) : null}
 
-      <ThemedText style={styles.section}>Mes contacts</ThemedText>
+      <ThemedText style={styles.section}>{t('contacts.myContacts')}</ThemedText>
       {loading ? (
         <ActivityIndicator color={theme.tint} style={styles.pad} />
       ) : contacts.length === 0 ? (
         <ThemedText themeColor="textSecondary" style={styles.pad}>
-          Aucun contact pour l’instant.
+          {t('contacts.empty')}
         </ThemedText>
       ) : (
         contacts.map((contact) => (
@@ -232,11 +233,11 @@ export default function ContactsScreen() {
                 {contact.preferredLanguage && isLanguageCode(contact.preferredLanguage)
                   ? formatLanguage(contact.preferredLanguage)
                   : `@${contact.username}`}
-                {contact.isOnline ? ' · en ligne' : ''}
+                {contact.isOnline ? ` · ${t('contacts.online')}` : ''}
               </ThemedText>
             </View>
             <Button
-              label="Démarrer"
+              label={t('contacts.start')}
               onPress={() => startConversation(contact)}
               loading={starting === contact.id}
             />
@@ -244,7 +245,7 @@ export default function ContactsScreen() {
         ))
       )}
       <ThemedText themeColor="textSecondary" style={styles.hint}>
-        Appui long sur un contact pour le supprimer.
+        {t('contacts.longPressHint')}
       </ThemedText>
     </Screen>
   );
