@@ -18,6 +18,8 @@ export interface Env {
   GEMINI_API_KEY?: string;
   /** Modèle Gemini (défaut : gemini-2.5-flash). */
   GEMINI_MODEL?: string;
+  /** Rétention des sessions terminées/expirées, en heures (défaut 24, borné 1..720). */
+  RETENTION_HOURS?: string;
 }
 
 export function hasGoogleOAuth(env: Env): boolean {

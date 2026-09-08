@@ -7,11 +7,12 @@ import { createAuth } from './auth';
 import { registerContactRoutes } from './contacts';
 import type { AppEnv } from './context';
 import { type Database, createDialect } from './db';
-import { hasGoogleOAuth } from './env';
+import { type Env, hasGoogleOAuth } from './env';
 import { registerInboxRoutes } from './inbox';
 import { registerMessageRoutes } from './messages';
 import { registerNearbyRoutes } from './nearby';
 import { registerRealtimeRoutes } from './realtime';
+import { runRetention } from './retention';
 import { registerSessionRoutes } from './sessions';
 
 export { SessionRoom } from './session-room';
@@ -71,4 +72,14 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));
 
 app.notFound((c) => c.json({ code: 'not_found', message: 'Route inconnue' }, 404));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  /** Trigger cron (voir wrangler.jsonc) : purge de rétention. */
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(
+      runRetention(env)
+        .then((report) => console.log('[retention]', JSON.stringify(report)))
+        .catch((err) => console.error('[retention] échec', err)),
+    );
+  },
+} satisfies ExportedHandler<Env>;

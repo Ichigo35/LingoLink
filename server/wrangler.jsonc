@@ -7,6 +7,10 @@
   "observability": {
     "enabled": true
   },
+  "triggers": {
+    // Purge de rétention horaire (voir src/retention.ts).
+    "crons": ["17 * * * *"]
+  },
   "vars": {
     "BETTER_AUTH_URL": "https://lingolink-api.ichigo35.workers.dev",
     "APP_SCHEME": "lingolink",

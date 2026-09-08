@@ -32,7 +32,8 @@ nav). Suite = itérations / corrections / polish visuel.
   `lingolink-api`, compte tcha.jimmy@gmail.com `34cf747a1eaf3858a49e4fafaf9580e0`).
   5 secrets poussés via `server/deploy-secrets.sh`. `wrangler.jsonc`
   `vars.BETTER_AUTH_URL` = URL de prod ; `server/.dev.vars` garde `localhost` pour
-  `wrangler dev`.
+  `wrangler dev`. ⚠️ le trigger cron de rétention (ajouté 2026-09-08) s'active au
+  prochain `wrangler deploy`.
 - **Google OAuth** : redirect URIs `http://localhost:8787/...` + `https://
   lingolink-api.ichigo35.workers.dev/api/auth/callback/google` enregistrées.
   Écran de consentement en mode **Test**, `tcha.jimmy@gmail.com` = utilisateur test.
@@ -97,7 +98,8 @@ src/
   types/
 server/            backend Cloudflare Worker (voir server/README.md pour les endpoints)
   src/             index, auth, ai, gemini, sessions, messages, realtime, inbox,
-                   contacts, nearby, invites, session-room, user-inbox, tickets, tokens, db
+                   contacts, nearby, invites, session-room, user-inbox, tickets,
+                   tokens, db, retention
   migrations/       0001..0005
 ```
 
@@ -116,6 +118,20 @@ donc les 2 blocs doivent avoir exactement les mêmes clés) + `useT()` (hook) /
 **Jamais de texte visible en dur dans un écran** — ajouter une clé fr + en.
 Choix de langue : écran Réglages (`uiLanguage` dans `settings-store`, persisté).
 Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
+
+## Rétention (cron)
+
+`server/src/retention.ts` + trigger `crons: ["17 * * * *"]` dans `wrangler.jsonc`
+(→ `export default { fetch, scheduled }` dans `index.ts`). Chaque heure :
+1. sessions `active` inactives > 24 h → `ended` ;
+2. sessions `waiting` dont le QR/lien est expiré → `expired` ;
+3. sessions `ended`/`expired` au-delà de `RETENTION_HOURS` (env, défaut 24, borné
+   1..720) → **DELETE** (les `conversation_messages` partent en cascade) ;
+4. `nearby_presence` expirée → DELETE ;
+5. `nearby_requests` > 60 min → DELETE.
+Idempotent. Test local : `npx wrangler dev --test-scheduled` puis
+`curl "http://localhost:8787/__scheduled?cron=17+*+*+*+*"` (log `[retention] {...}`).
+⚠️ `.dev.vars` pointe sur la **vraie** base Neon → le test local mute la prod.
 
 ## Règles de travail
 
@@ -150,8 +166,8 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 ## Reste à faire (idées)
 
 - ~~i18n des écrans secondaires~~ ✅ fait (2026-09-08).
+- ~~Rétention : purge des sessions/messages terminés (cron)~~ ✅ fait (2026-09-08).
 - Icône/splash custom (placeholders Expo actuels).
 - ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
 - APK signé release (clé de prod) si distribution hors test.
 - `preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`.
-- Rétention : purge des messages/sessions terminées (cron).
