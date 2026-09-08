@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { conversationsService } from '@/services/conversations';
@@ -23,6 +24,7 @@ export function ConversationInviteModal() {
   const invite = useInboxStore((s) => s.pendingInvite);
   const clearInvite = useInboxStore((s) => s.clearInvite);
   const setSession = useSessionStore((s) => s.setSession);
+  const guard = useConversationGuard();
   const [joining, setJoining] = useState(false);
 
   if (!invite) return null;
@@ -32,7 +34,11 @@ export function ConversationInviteModal() {
   const mine = invite.participantLanguage;
   const theirs = invite.creatorLanguage;
 
-  async function accept() {
+  function accept() {
+    guard(() => void runAccept());
+  }
+
+  async function runAccept() {
     if (!invite) return;
     setJoining(true);
     try {

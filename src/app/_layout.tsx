@@ -17,6 +17,7 @@ import { ConversationInviteModal } from '@/components/conversation-invite-modal'
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/offline-banner';
 import { extractJoinToken } from '@/config/session';
+import { ConversationGuardProvider } from '@/features/conversation/conversation-guard';
 import { useAppRealtime } from '@/hooks/use-app-realtime';
 import { useAuth } from '@/hooks/use-auth';
 import { useResolvedScheme, useTheme } from '@/hooks/use-theme';
@@ -61,7 +62,15 @@ function useAuthRouting() {
       router.replace('/welcome');
     } else if (isAuthenticated && needsOnboarding && current !== 'onboarding') {
       router.replace('/onboarding');
-    } else if (isAuthenticated && !needsOnboarding && pendingToken && current !== 'join') {
+    } else if (
+      isAuthenticated &&
+      !needsOnboarding &&
+      pendingToken &&
+      current !== 'join' &&
+      // Ne pas arracher l'utilisateur d'une conversation active : le token
+      // en attente sera consommé à son retour à l'accueil.
+      current !== 'conversation'
+    ) {
       router.replace(`/join/${pendingToken}`);
     } else if (isAuthenticated && inPublic) {
       router.replace(needsOnboarding ? '/onboarding' : '/');
@@ -93,7 +102,7 @@ function RootNavigator() {
   }
 
   return (
-    <>
+    <ConversationGuardProvider>
       <Stack
         screenOptions={{
           headerShadowVisible: false,
@@ -123,7 +132,7 @@ function RootNavigator() {
         />
       </Stack>
       <ConversationInviteModal />
-    </>
+    </ConversationGuardProvider>
   );
 }
 

@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { LanguageSelector } from '@/components/ui/language-selector';
 import { formatLanguage, isLanguageCode, type LanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAudioCapture } from '@/features/conversation/use-audio-capture';
@@ -16,6 +17,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
 import { conversationsService } from '@/services/conversations';
+import { useSessionStore } from '@/stores/session-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import type { ConversationMessage } from '@/types';
 
 export default function ConversationScreen() {
@@ -40,6 +43,10 @@ export default function ConversationScreen() {
   const [leaveOpen, setLeaveOpen] = useState(false);
   /** L'utilisateur a choisi de rester après le départ de l'autre. */
   const [peerLeftDismissed, setPeerLeftDismissed] = useState(false);
+  /** Sélecteur « changer ma langue » ouvert. */
+  const [langOpen, setLangOpen] = useState(false);
+  const [langBusy, setLangBusy] = useState(false);
+  const [langError, setLangError] = useState<string | null>(null);
 
   const isCreator = !!session && user?.id === session.creatorId;
   const myLang = session ? (isCreator ? session.creatorLanguage : session.participantLanguage) : null;
@@ -127,8 +134,29 @@ export default function ConversationScreen() {
     } catch {
       /* ignore */
     }
+    useSessionStore.getState().clear();
     router.replace('/');
   }
+
+  const changeMyLanguage = useCallback(
+    async (code: LanguageCode) => {
+      if (!id || code === myLang || langBusy) return;
+      setLangBusy(true);
+      setLangError(null);
+      try {
+        await conversationsService.setMyLanguage(id, code);
+        if (otherLang && isLanguageCode(otherLang)) {
+          useSettingsStore.getState().setLastLanguages(code, otherLang);
+        }
+        setLangOpen(false);
+      } catch (e) {
+        setLangError(e instanceof ApiRequestError ? e.message : t('conv.langChangeError'));
+      } finally {
+        setLangBusy(false);
+      }
+    },
+    [id, myLang, otherLang, langBusy, t],
+  );
 
   // L'autre personne a quitté / terminé sans qu'on l'ait fait soi-même :
   // vibration d'alerte (le dialogue « rester / quitter » est rendu plus bas).
@@ -198,6 +226,57 @@ export default function ConversationScreen() {
         </Pressable>
       </View>
 
+      {/* Barre de langue : chacun change SA langue en cours de conversation. */}
+      {!ended && myLang && otherLang ? (
+        <View style={[styles.langBar, { borderColor: theme.border }]}>
+          <Pressable
+            onPress={() => {
+              setLangError(null);
+              setLangOpen(true);
+            }}
+            hitSlop={8}
+            style={[styles.langChip, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            <ThemedText style={styles.langChipText}>
+              {formatLanguage(myLang as LanguageCode)}  ✎
+            </ThemedText>
+          </Pressable>
+          <ThemedText themeColor="textSecondary" style={styles.langArrow}>
+            ⇄
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.langOther}>
+            {formatLanguage(otherLang as LanguageCode)}
+          </ThemedText>
+        </View>
+      ) : null}
+      {langError ? (
+        <ThemedText style={[styles.micError, { color: theme.danger }]}>{langError}</ThemedText>
+      ) : null}
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={langOpen}
+        onRequestClose={() => setLangOpen(false)}>
+        <View style={styles.langBackdrop}>
+          <View style={[styles.langCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ThemedText style={styles.langTitle}>{t('conv.changeLanguage')}</ThemedText>
+            <LanguageSelector
+              label={t('common.myLanguage')}
+              value={myLang}
+              exclude={otherLang}
+              onChange={changeMyLanguage}
+            />
+            {langBusy ? <ActivityIndicator color={theme.tint} style={{ marginTop: Spacing.two }} /> : null}
+            <Button
+              label={t('common.close')}
+              variant="ghost"
+              onPress={() => setLangOpen(false)}
+              style={{ marginTop: Spacing.two }}
+            />
+          </View>
+        </View>
+      </Modal>
+
       <ConfirmDialog
         visible={leaveOpen}
         title={isCreator ? t('conv.endTitle') : t('conv.leaveTitle')}
@@ -219,7 +298,10 @@ export default function ConversationScreen() {
         confirmLabel={t('conv.leave')}
         cancelLabel={t('conv.peerLeftStay')}
         destructive
-        onConfirm={() => router.replace('/')}
+        onConfirm={() => {
+          useSessionStore.getState().clear();
+          router.replace('/');
+        }}
         onCancel={() => setPeerLeftDismissed(true)}
       />
 
@@ -366,6 +448,39 @@ const styles = StyleSheet.create({
   topbarText: { fontSize: 15, fontWeight: '600' },
   rtBadge: { fontSize: 11 },
   leave: { fontSize: 15, fontWeight: '600' },
+  langBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  langChip: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  langChipText: { fontSize: 13, fontWeight: '600' },
+  langArrow: { fontSize: 13 },
+  langOther: { fontSize: 13, fontWeight: '600' },
+  langBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.four,
+  },
+  langCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.four,
+    gap: Spacing.two,
+  },
+  langTitle: { fontSize: 18, fontWeight: '700', marginBottom: Spacing.one },
   dot: { width: 9, height: 9, borderRadius: 5 },
   messages: { padding: Spacing.three, gap: Spacing.three, flexGrow: 1 },
   empty: { textAlign: 'center', marginTop: Spacing.six, fontSize: 15, lineHeight: 22 },

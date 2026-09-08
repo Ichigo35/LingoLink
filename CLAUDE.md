@@ -28,6 +28,26 @@ déployé (`lingolink-web.pages.dev` pour le web), APK `build-output/LingoLink.a
    état « en écoute » explicite sur `processing`|`partial` sans transcript.
 Worker redéployé (`65ceeb07`), web redéployé, APK régénéré (`LingoLink.apk`, 55 Mo).
 Nouvelle dépendance app : `expo-localization ~57.0.1`.
+
+**Itération 2026-09-08 (7) — retours terrain :**
+16. **Changer de langue en cours de conversation** : nouvelle route
+   `POST /api/sessions/:id/language` (`server/src/sessions.ts`) — chacun ne
+   modifie que SON côté (`creator_language` / `participant_language`), l'autre
+   téléphone est notifié par `session_status`. Client :
+   `conversationsService.setMyLanguage`, barre de langue tappable sous le topbar
+   de `conversation/[id].tsx` (`LanguageSelector` dans un `Modal`). Les messages
+   déjà envoyés gardent leur langue (figée à l'envoi). Refus si = langue de l'autre.
+17. **Garde « une seule conversation à la fois »** :
+   `src/features/conversation/conversation-guard.tsx` (provider + `useConversationGuard()`,
+   monté dans `_layout.tsx` autour du `<Stack>`). Toute action démarrer/rejoindre
+   (new-conversation `qr`/`link`, scan, `/join/:token`, contact, proximité,
+   invitation entrante) passe par `guard(proceed)` → si une session
+   `waiting|connecting|active` existe, `ConfirmDialog` « Quitter la conversation
+   en cours pour accéder à la nouvelle ? » (Oui = end/leave puis proceed).
+   `session-store.clear()` appelé sur sortie propre (`conversation/[id].tsx`
+   `leave()` + peer-left) — avant, jamais appelé → garde bloquait à tort.
+   Deep link entrant pendant une conversation : plus de saut auto vers `/join`.
+Worker redéployé (`d02ac2e8`), web + APK régénérés.
 **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
 rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
@@ -203,7 +223,7 @@ src/
   app/            écrans + routage expo-router
   components/      themed-*, ui/, error-boundary, offline-banner, conversation-invite-modal
   config/          languages.ts (§18, centralisé), env.ts, session.ts
-  features/        conversation/use-audio-capture.ts
+  features/        conversation/use-audio-capture.ts, conversation/conversation-guard.tsx
   hooks/           use-auth, use-live-session, use-app-realtime, use-theme, i18n via src/i18n
   i18n/            translations.ts (fr/en, TOUS les écrans) + useT()/translate()
   lib/             api-client.ts, auth-client.ts (better-auth expo)

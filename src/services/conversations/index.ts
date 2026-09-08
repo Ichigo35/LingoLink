@@ -92,6 +92,15 @@ export const conversationsService = {
     return session;
   },
 
+  /** Change SA propre langue dans une conversation en cours. */
+  async setMyLanguage(sessionId: string, language: LanguageCode): Promise<ConversationSession> {
+    const { session } = await apiRequest<SessionResponse>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/language`,
+      { method: 'POST', cookie: await authHeader(), body: { language } },
+    );
+    return session;
+  },
+
   async listMessages(sessionId: string): Promise<ConversationMessage[]> {
     const { messages } = await apiRequest<{ messages: ConversationMessage[] }>(
       `/api/sessions/${encodeURIComponent(sessionId)}/messages`,

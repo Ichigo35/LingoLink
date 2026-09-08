@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
@@ -22,6 +23,7 @@ export default function NearbyScreen() {
   const router = useRouter();
   const t = useT();
   const { needsOnboarding } = useAuth();
+  const guard = useConversationGuard();
 
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -88,7 +90,11 @@ export default function NearbyScreen() {
     };
   }, []);
 
-  async function connect(u: NearbyUser) {
+  function connect(u: NearbyUser) {
+    guard(() => void runConnect(u));
+  }
+
+  async function runConnect(u: NearbyUser) {
     setRequesting(u.profileId);
     try {
       const { sessionId } = await nearbyService.requestConversation(u.profileId);

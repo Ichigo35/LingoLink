@@ -9,6 +9,7 @@ import { LanguageSelector } from '@/components/ui/language-selector';
 import { Screen } from '@/components/ui/screen';
 import { formatLanguage, type LanguageCode } from '@/config/languages';
 import { Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useT } from '@/i18n';
 import { useNewConversationStore } from '@/stores/new-conversation-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -17,6 +18,7 @@ import type { ConnectionMethod } from '@/types';
 export default function NewConversationScreen() {
   const router = useRouter();
   const t = useT();
+  const guard = useConversationGuard();
   const { lastMyLanguage, lastOtherLanguage, setLastLanguages } = useSettingsStore();
   const { setLanguages, setMethod } = useNewConversationStore();
 
@@ -41,7 +43,13 @@ export default function NewConversationScreen() {
         : nextMethod === 'nearby'
           ? '/nearby'
           : '/session/host'; // 'qr' et 'link' : même écran hôte
-    router.push(target);
+    // 'qr'/'link' créent la session au montage de l'écran hôte → garde ici.
+    // 'contact'/'nearby' ne font que naviguer vers un écran de choix (garde en aval).
+    if (nextMethod === 'qr' || nextMethod === 'link') {
+      guard(() => router.push(target));
+    } else {
+      router.push(target);
+    }
   }
 
   if (step === 'languages') {

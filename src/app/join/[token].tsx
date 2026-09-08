@@ -8,6 +8,7 @@ import { Screen } from '@/components/ui/screen';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { extractJoinToken, formatCountdown, secondsUntil } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
@@ -31,6 +32,7 @@ export default function JoinScreen() {
   const t = useT();
   const setSession = useSessionStore((s) => s.setSession);
   const clearPending = usePendingJoinStore((s) => s.clear);
+  const guard = useConversationGuard();
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,11 @@ export default function JoinScreen() {
     return () => clearInterval(t);
   }, [remaining]);
 
-  async function join() {
+  function join() {
+    guard(() => void runJoin());
+  }
+
+  async function runJoin() {
     setJoining(true);
     setError(null);
     try {

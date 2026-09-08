@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { formatLanguage, isLanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
@@ -26,6 +27,7 @@ export default function ContactsScreen() {
   const { isGuest, user } = useAuth();
   const hasUsername = !!(user as { username?: string | null } | null)?.username;
   const contactsVersion = useInboxStore((s) => s.contactsVersion);
+  const guard = useConversationGuard();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [requests, setRequests] = useState<IncomingRequest[]>([]);
@@ -104,7 +106,11 @@ export default function ContactsScreen() {
     refresh();
   }
 
-  async function startConversation(contact: Contact) {
+  function startConversation(contact: Contact) {
+    guard(() => void runStartConversation(contact));
+  }
+
+  async function runStartConversation(contact: Contact) {
     setStarting(contact.id);
     try {
       const { sessionId } = await contactsService.startConversation(contact.id);

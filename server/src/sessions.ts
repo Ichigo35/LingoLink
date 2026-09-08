@@ -205,6 +205,44 @@ export function registerSessionRoutes(app: Hono<AppEnv>) {
 
   app.post('/api/sessions/:id/leave', (c) => endSession(c, false));
   app.post('/api/sessions/:id/end', (c) => endSession(c, true));
+
+  // Changer SA langue en cours de conversation. Chaque participant ne modifie
+  // que son propre côté ; l'autre téléphone est notifié via `session_status`.
+  app.post('/api/sessions/:id/language', async (c) => {
+    const user = await requireUser(c);
+    if (!user) return c.json({ code: 'unauthenticated', message: 'Connexion requise' }, 401);
+    const id = c.req.param('id');
+    if (!id) return c.json({ code: 'not_found', message: 'Session introuvable' }, 404);
+
+    const body = await c.req.json().catch(() => ({}));
+    const language = body?.language;
+    if (!isLanguageCode(language)) {
+      return c.json({ code: 'invalid_language', message: 'Langue invalide' }, 400);
+    }
+
+    const db = c.get('db');
+    const row = await ownSessionQuery(db, id, user.id).executeTakeFirst();
+    if (!row) return c.json({ code: 'not_found', message: 'Session introuvable' }, 404);
+    if (!['waiting', 'connecting', 'active'].includes(row.status)) {
+      return c.json({ code: 'session_not_active', message: 'La session n’est plus active' }, 409);
+    }
+
+    const isCreator = row.creator_id === user.id;
+    const otherLanguage = isCreator ? row.participant_language : row.creator_language;
+    if (language === otherLanguage) {
+      return c.json({ code: 'same_language', message: 'Les deux langues seraient identiques' }, 400);
+    }
+
+    const updated = await db
+      .updateTable('conversation_sessions')
+      .set(isCreator ? { creator_language: language } : { participant_language: language })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const dto = toDto(updated, c.env.BETTER_AUTH_URL);
+    await notifyRoom(c.env, id, { type: 'session_status', session: dto });
+    return c.json({ session: dto });
+  });
 }
 
 async function endSession(c: AppContext, creatorOnly: boolean) {

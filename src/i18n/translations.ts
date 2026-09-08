@@ -23,6 +23,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': 'Ma langue',
     'common.theirLanguage': 'Langue de l’autre personne',
     'common.mainLanguage': 'Ma langue principale',
+    'common.yes': 'Oui',
+    'common.no': 'Non',
 
     'nav.newConversation': 'Nouvelle conversation',
     'nav.invite': 'Inviter',
@@ -228,6 +230,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': 'L’autre personne a quitté',
     'conv.peerLeftBody': 'La conversation est terminée. Vous pouvez sortir.',
     'conv.peerLeftStay': 'Rester',
+    'conv.changeLanguage': 'Changer ma langue',
+    'conv.langChangeError': 'Impossible de changer la langue',
+
+    'guard.leaveCurrentTitle': 'Quitter la conversation en cours pour accéder à la nouvelle ?',
 
     'error.title': 'Une erreur est survenue',
     'error.body': 'L’application a rencontré un problème inattendu.',
@@ -245,6 +251,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': 'My language',
     'common.theirLanguage': 'Their language',
     'common.mainLanguage': 'My main language',
+    'common.yes': 'Yes',
+    'common.no': 'No',
 
     'nav.newConversation': 'New conversation',
     'nav.invite': 'Invite',
@@ -450,6 +458,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': 'The other person left',
     'conv.peerLeftBody': 'The conversation has ended. You can leave now.',
     'conv.peerLeftStay': 'Stay',
+    'conv.changeLanguage': 'Change my language',
+    'conv.langChangeError': 'Could not change the language',
+
+    'guard.leaveCurrentTitle': 'Leave the current conversation to start the new one?',
 
     'error.title': 'Something went wrong',
     'error.body': 'The app ran into an unexpected problem.',
@@ -467,6 +479,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': 'ພາສາຂອງຂ້ອຍ',
     'common.theirLanguage': 'ພາສາຂອງອີກຝ່າຍ',
     'common.mainLanguage': 'ພາສາຫຼັກຂອງຂ້ອຍ',
+    'common.yes': 'ແມ່ນ',
+    'common.no': 'ບໍ່',
 
     'nav.newConversation': 'ການສົນທະນາໃໝ່',
     'nav.invite': 'ເຊີນ',
@@ -665,6 +679,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': 'ອີກຝ່າຍໄດ້ອອກໄປແລ້ວ',
     'conv.peerLeftBody': 'ການສົນທະນາຈົບແລ້ວ. ທ່ານອອກໄດ້ເລີຍ.',
     'conv.peerLeftStay': 'ຢູ່ຕໍ່',
+    'conv.changeLanguage': 'ປ່ຽນພາສາຂອງຂ້ອຍ',
+    'conv.langChangeError': 'ບໍ່ສາມາດປ່ຽນພາສາໄດ້',
+
+    'guard.leaveCurrentTitle': 'ອອກຈາກການສົນທະນາປັດຈຸບັນ ເພື່ອເຂົ້າສູ່ອັນໃໝ່ບໍ?',
 
     'error.title': 'ມີບາງຢ່າງຜິດພາດ',
     'error.body': 'ແອັບພົບບັນຫາທີ່ບໍ່ຄາດຄິດ.',
@@ -682,6 +700,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': 'ภาษาของฉัน',
     'common.theirLanguage': 'ภาษาของอีกฝ่าย',
     'common.mainLanguage': 'ภาษาหลักของฉัน',
+    'common.yes': 'ใช่',
+    'common.no': 'ไม่',
 
     'nav.newConversation': 'การสนทนาใหม่',
     'nav.invite': 'เชิญ',
@@ -880,6 +900,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': 'อีกฝ่ายออกไปแล้ว',
     'conv.peerLeftBody': 'การสนทนาจบแล้ว คุณออกได้เลย',
     'conv.peerLeftStay': 'อยู่ต่อ',
+    'conv.changeLanguage': 'เปลี่ยนภาษาของฉัน',
+    'conv.langChangeError': 'ไม่สามารถเปลี่ยนภาษาได้',
+
+    'guard.leaveCurrentTitle': 'ออกจากการสนทนาปัจจุบันเพื่อเริ่มการสนทนาใหม่?',
 
     'error.title': 'มีบางอย่างผิดพลาด',
     'error.body': 'แอปพบปัญหาที่ไม่คาดคิด',
@@ -897,6 +921,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': '我的语言',
     'common.theirLanguage': '对方的语言',
     'common.mainLanguage': '我的主要语言',
+    'common.yes': '是',
+    'common.no': '否',
 
     'nav.newConversation': '新对话',
     'nav.invite': '邀请',
@@ -1094,6 +1120,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': '对方已离开',
     'conv.peerLeftBody': '对话已结束。你现在可以离开了。',
     'conv.peerLeftStay': '留下',
+    'conv.changeLanguage': '更改我的语言',
+    'conv.langChangeError': '无法更改语言',
+
+    'guard.leaveCurrentTitle': '离开当前对话以开始新对话？',
 
     'error.title': '出了点问题',
     'error.body': '应用遇到意外问题。',
@@ -1111,6 +1141,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': '自分の言語',
     'common.theirLanguage': '相手の言語',
     'common.mainLanguage': '自分の主要言語',
+    'common.yes': 'はい',
+    'common.no': 'いいえ',
 
     'nav.newConversation': '新しい会話',
     'nav.invite': '招待',
@@ -1310,6 +1342,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': '相手が退出しました',
     'conv.peerLeftBody': '会話は終了しました。退出できます。',
     'conv.peerLeftStay': '残る',
+    'conv.changeLanguage': '自分の言語を変更',
+    'conv.langChangeError': '言語を変更できませんでした',
+
+    'guard.leaveCurrentTitle': '現在の会話を終了して新しい会話を始めますか？',
 
     'error.title': '問題が発生しました',
     'error.body': 'アプリで予期しない問題が発生しました。',
@@ -1327,6 +1363,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': '내 언어',
     'common.theirLanguage': '상대방 언어',
     'common.mainLanguage': '내 주요 언어',
+    'common.yes': '예',
+    'common.no': '아니요',
 
     'nav.newConversation': '새 대화',
     'nav.invite': '초대',
@@ -1525,6 +1563,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': '상대방이 나갔습니다',
     'conv.peerLeftBody': '대화가 종료되었습니다. 이제 나가도 됩니다.',
     'conv.peerLeftStay': '남기',
+    'conv.changeLanguage': '내 언어 변경',
+    'conv.langChangeError': '언어를 변경할 수 없습니다',
+
+    'guard.leaveCurrentTitle': '현재 대화를 나가고 새 대화를 시작할까요?',
 
     'error.title': '문제가 발생했습니다',
     'error.body': '앱에서 예기치 않은 문제가 발생했습니다.',
@@ -1542,6 +1584,8 @@ export const TRANSLATIONS = {
     'common.myLanguage': 'मेरी भाषा',
     'common.theirLanguage': 'सामने वाले की भाषा',
     'common.mainLanguage': 'मेरी मुख्य भाषा',
+    'common.yes': 'हाँ',
+    'common.no': 'नहीं',
 
     'nav.newConversation': 'नई बातचीत',
     'nav.invite': 'आमंत्रित करें',
@@ -1740,6 +1784,10 @@ export const TRANSLATIONS = {
     'conv.peerLeftTitle': 'सामने वाला चला गया',
     'conv.peerLeftBody': 'बातचीत समाप्त हो गई है। अब आप जा सकते हैं।',
     'conv.peerLeftStay': 'रुकें',
+    'conv.changeLanguage': 'मेरी भाषा बदलें',
+    'conv.langChangeError': 'भाषा नहीं बदली जा सकी',
+
+    'guard.leaveCurrentTitle': 'नई बातचीत शुरू करने के लिए मौजूदा बातचीत छोड़ें?',
 
     'error.title': 'कुछ गड़बड़ हो गई',
     'error.body': 'ऐप में एक अप्रत्याशित समस्या आई।',

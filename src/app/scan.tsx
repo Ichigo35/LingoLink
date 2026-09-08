@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { extractJoinToken } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
+import { useConversationGuard } from '@/features/conversation/conversation-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { ApiRequestError } from '@/lib/api-client';
@@ -21,6 +22,7 @@ export default function ScanScreen() {
   const t = useT();
   const [permission, requestPermission] = useCameraPermissions();
   const setSession = useSessionStore((s) => s.setSession);
+  const guard = useConversationGuard();
 
   // Web : pas de scan caméra fiable → saisie du code directement.
   const isWeb = Platform.OS === 'web';
@@ -30,7 +32,7 @@ export default function ScanScreen() {
   const [busy, setBusy] = useState(false);
   const lockRef = useRef(false);
 
-  async function join(fn: () => Promise<ConversationSession>) {
+  async function runJoin(fn: () => Promise<ConversationSession>) {
     if (lockRef.current) return;
     lockRef.current = true;
     setBusy(true);
@@ -46,6 +48,10 @@ export default function ScanScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function join(fn: () => Promise<ConversationSession>) {
+    guard(() => void runJoin(fn));
   }
 
   function onBarcode(data: string) {
