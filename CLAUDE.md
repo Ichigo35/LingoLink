@@ -27,6 +27,16 @@ Suite = itérations / corrections / pistes libres (voir bas de fichier).
 5. Builds locaux : **un seul fichier par plateforme, écrasé** (§ Builds).
 Backend redéployé (version `e45159dd`).
 
+**Itération 2026-09-08 (3) :**
+6. **Traduction phrase-par-phrase** (VAD léger, `use-audio-capture.ts`) : pendant
+   qu'on maintient le bouton, coupe le segment à chaque pause + envoi/traduction
+   immédiate → un long monologue défile traduit au fil de l'eau. Coupe aussi à
+   12 s. Vrai temps-réel bidi (Gemini Live) = toujours reporté.
+7. **Version web** « rejoindre + converser » → Cloudflare **Pages**
+   `lingolink-web.pages.dev` (§ Version web). La page `/join` propose
+   « Continuer dans le navigateur » pour ceux sans l'app.
+Backend redéployé (version `90e9aa76`).
+
 ## Contraintes imposées par l'utilisateur
 
 - **Base : Neon** (pas Supabase). Projet `LingoLink` = `proud-mountain-72949074`,
@@ -183,6 +193,16 @@ Clé = `msg:<userId>` / `ai:<userId>`. Dépassement → `429 {code:"rate_limited
 Best-effort par colo (pas global) — suffisant pour le contrôle de coût.
 Better Auth garde son rate limiting intégré côté `/api/auth/*`.
 
+## Capture audio / VAD
+
+`src/features/conversation/use-audio-capture.ts` : push-to-talk **avec
+segmentation automatique**. Tant que le bouton est maintenu, un poll (~140 ms)
+lit `recorder.getStatus().metering` ; après ≥1,1 s de parole suivie de ~850 ms
+sous `-40 dBFS`, le segment est coupé → `onSegment()` (envoi + traduction
+immédiate) → nouveau segment sans relâcher. Coupe forcée à 12 s. `stop()` renvoie
+le dernier segment. `conversation/[id].tsx` : `sendSegment()` partagé, compteur
+`inFlight` (plusieurs envois en parallèle), bouton actif pendant l'enregistrement.
+
 ## Liens de partage / deep links
 
 - **`session.joinUrl` = URL HTTPS** `https://lingolink-api.ichigo35.workers.dev/join/<token>`
@@ -200,6 +220,32 @@ Better Auth garde son rate limiting intégré côté `/api/auth/*`.
   aussi cette URL HTTPS (toujours scannable, `extractJoinToken` gère les 2 formes).
 - **iOS Universal Links** : pas fait (besoin d'un Team ID Apple / compte
   Developer). La page de rebond couvre iOS en attendant (tap Safari → scheme).
+
+## Version web (Cloudflare Pages)
+
+Périmètre volontairement réduit : **mode invité + rejoindre par code/lien +
+écran de conversation** (micro navigateur + traduction). Pas de création de
+session / contacts / proximité / Google sur le web.
+
+- **Build + deploy** : `bash scripts/deploy-web.sh` → `expo export -p web`
+  (`app.json` `web.output: "single"`, SPA) + `dist/_redirects` (`/* /index.html
+  200`) → `wrangler pages deploy` sur le projet **`lingolink-web`** →
+  `https://lingolink-web.pages.dev`.
+- **Auth web = jeton bearer** (pas de cookie) : le web est sur un autre domaine
+  que l'API → cookies cross-site peu fiables (Safari). Serveur : plugin
+  `bearer()` de Better Auth. Client (`src/lib/auth-client.ts`) : sur
+  `Platform.OS === 'web'`, pas de plugin `expo`, le jeton `set-auth-token` est
+  stocké en `localStorage` (`lingolink_bearer`) et renvoyé en
+  `Authorization: Bearer` (via `fetchOptions.auth` + injecté dans `api-client.ts`).
+  Natif inchangé (plugin `@better-auth/expo` + SecureStore).
+  `getAuthCookie()` / `getBearerToken()` centralisent l'accès.
+- **`WEB_APP_URL`** (var wrangler) = URL du web : dans `trustedOrigins` Better
+  Auth + bouton « Continuer dans le navigateur » de la page `/join`.
+- **Écrans gardés** `Platform.OS === 'web'` : `welcome` (invité seul),
+  `index` (carte « Rejoindre » seule), `scan` (saisie de code, pas de `CameraView`).
+- Le VAD (`use-audio-capture`) dépend du niveau `metering` : indisponible sur
+  certains navigateurs → sur le web, seule la coupe à 12 s + le relâchement
+  s'appliquent (dégradation acceptable).
 
 ## Rétention (cron)
 
@@ -235,7 +281,8 @@ Idempotent. Test local : `npx wrangler dev --test-scheduled` puis
 | Lint | `npm run lint` |
 | Bundle de contrôle | `npx expo export -p ios --output-dir /tmp/x` |
 | Déployer le backend | `cd server && bash deploy-secrets.sh && npx wrangler deploy` |
-| Build APK | voir section **Builds** |
+| Build APK | `bash scripts/build-apk.sh` (voir **Builds**) |
+| Déployer le web | `bash scripts/deploy-web.sh` → `lingolink-web.pages.dev` |
 | Test backend (scripts) | dans le scratchpad de session : `*-test.mjs` (rt, msg, contacts, nearby) |
 
 ## Expo
