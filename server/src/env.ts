@@ -5,6 +5,10 @@ export interface Env {
   SESSION_ROOM: DurableObjectNamespace;
   /** Durable Object : une boîte de réception temps réel par utilisateur. */
   USER_INBOX: DurableObjectNamespace;
+  /** Rate limiter du pipeline vocal (POST /api/sessions/:id/messages). */
+  MSG_RATE_LIMITER: RateLimit;
+  /** Rate limiter des routes /api/ai/* (test / traduction texte). */
+  AI_RATE_LIMITER: RateLimit;
   /** Secret de signature des sessions Better Auth. */
   BETTER_AUTH_SECRET: string;
   /** URL publique du backend (baseURL Better Auth). */

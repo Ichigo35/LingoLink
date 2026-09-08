@@ -4,6 +4,7 @@ import { MAX_AUDIO_B64_LENGTH, aiErrorResponse, getTranslationProvider } from '.
 import type { AppEnv } from './context';
 import type { Database } from './db';
 import { isLanguageCode } from './languages';
+import { enforceRateLimit } from './rate-limit';
 import { notifyRoom } from './realtime';
 
 type MessageRow = Database['conversation_messages'];
@@ -80,6 +81,9 @@ export function registerMessageRoutes(app: Hono<AppEnv>) {
     if (sessionRow.status !== 'active') {
       return c.json({ code: 'session_not_active', message: 'La conversation n’est pas active' }, 409);
     }
+
+    const limited = await enforceRateLimit(c, c.env.MSG_RATE_LIMITER, `msg:${userId}`);
+    if (limited) return limited;
 
     const body = await c.req.json().catch(() => ({}));
     const { audioBase64, mimeType, clientId } = body ?? {};

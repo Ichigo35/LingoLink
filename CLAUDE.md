@@ -135,6 +135,16 @@ donc les 2 blocs doivent avoir exactement les mêmes clés) + `useT()` (hook) /
 Choix de langue : écran Réglages (`uiLanguage` dans `settings-store`, persisté).
 Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
 
+## Rate limiting (proxy Gemini)
+
+`server/src/rate-limit.ts` (`enforceRateLimit`, fail-open) + bindings
+`ratelimits` dans `wrangler.jsonc` (`period` ∈ {10, 60} uniquement) :
+- `MSG_RATE_LIMITER` — 20/60 s par user sur `POST /api/sessions/:id/messages` ;
+- `AI_RATE_LIMITER` — 12/60 s par user sur `POST /api/ai/{process,translate}`.
+Clé = `msg:<userId>` / `ai:<userId>`. Dépassement → `429 {code:"rate_limited"}`.
+Best-effort par colo (pas global) — suffisant pour le contrôle de coût.
+Better Auth garde son rate limiting intégré côté `/api/auth/*`.
+
 ## Rétention (cron)
 
 `server/src/retention.ts` + trigger `crons: ["17 * * * *"]` dans `wrangler.jsonc`
@@ -191,6 +201,8 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 - ~~APK signé release (keystore de prod)~~ ✅ fait (2026-09-08) — plugin +
   `credentials/` local. APK release vérifié signé (SHA-256 du keystore, schéma v2).
 - ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
+- ~~rate-limiting du proxy Gemini~~ ✅ fait (2026-09-08).
 - **La liste initiale est terminée.** Pistes libres : monitoring d'erreurs
-  (Sentry), rate-limiting du proxy Gemini, tests automatisés, AAB pour le Play
-  Store, i18n i18n de `ai-test` si un jour non-dev.
+  (Sentry — bloqué : besoin d'un DSN), rate limiting Better Auth avec storage
+  DB, tests automatisés (Vitest workers pool), AAB Play Store (repoussé),
+  i18n de `ai-test` si un jour non-dev.

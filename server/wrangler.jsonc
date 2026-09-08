@@ -27,6 +27,12 @@
       { "name": "USER_INBOX", "class_name": "UserInbox" }
     ]
   },
+  // Rate limiting par utilisateur du proxy Gemini (coût + anti-abus).
+  // `period` ne peut valoir que 10 ou 60 s. Limiteur best-effort par colo.
+  "ratelimits": [
+    { "name": "MSG_RATE_LIMITER", "namespace_id": "1101", "simple": { "limit": 20, "period": 60 } },
+    { "name": "AI_RATE_LIMITER", "namespace_id": "1102", "simple": { "limit": 12, "period": 60 } }
+  ],
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["SessionRoom"] },
     { "tag": "v2", "new_sqlite_classes": ["UserInbox"] }
