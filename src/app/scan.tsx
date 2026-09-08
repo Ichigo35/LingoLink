@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,9 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const setSession = useSessionStore((s) => s.setSession);
 
-  const [mode, setMode] = useState<'scan' | 'code'>('scan');
+  // Web : pas de scan caméra fiable → saisie du code directement.
+  const isWeb = Platform.OS === 'web';
+  const [mode, setMode] = useState<'scan' | 'code'>(isWeb ? 'code' : 'scan');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const lockRef = useRef(false);
@@ -77,7 +79,9 @@ export default function ScanScreen() {
           ]}
         />
         <Button label={t('scan.join')} onPress={submitCode} loading={busy} style={styles.cta} />
-        <Button label={t('scan.scanInstead')} variant="ghost" onPress={() => setMode('scan')} />
+        {!isWeb ? (
+          <Button label={t('scan.scanInstead')} variant="ghost" onPress={() => setMode('scan')} />
+        ) : null}
       </Screen>
     );
   }

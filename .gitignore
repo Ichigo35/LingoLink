@@ -56,3 +56,6 @@ example
 
 # APK builds locaux
 /build-output/
+
+# Cloudflare Pages / Playwright
+.playwright-mcp/

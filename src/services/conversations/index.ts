@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 import type { LanguageCode } from '@/config/languages';
 import { apiRequest } from '@/lib/api-client';
-import { authClient } from '@/lib/auth-client';
+import { getAuthCookie } from '@/lib/auth-client';
 import type { ConnectionMethod, ConversationMessage, ConversationSession } from '@/types';
 
 function mimeForUri(uri: string): string {
@@ -20,7 +20,7 @@ function mimeForUri(uri: string): string {
 }
 
 async function authHeader(): Promise<string | null> {
-  return (await authClient.getCookie()) ?? null;
+  return (await getAuthCookie()) ?? null;
 }
 
 export interface CreateSessionInput {

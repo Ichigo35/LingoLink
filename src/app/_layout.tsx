@@ -9,7 +9,7 @@ import {
 import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -103,7 +103,10 @@ function RootNavigator() {
           options={{ title: t('nav.newConversation'), presentation: 'modal' }}
         />
         <Stack.Screen name="session/host" options={{ title: t('nav.invite'), presentation: 'modal' }} />
-        <Stack.Screen name="scan" options={{ title: t('nav.scan') }} />
+        <Stack.Screen
+          name="scan"
+          options={{ title: Platform.OS === 'web' ? t('home.joinWeb') : t('nav.scan') }}
+        />
         <Stack.Screen name="join/[token]" options={{ headerShown: false }} />
         <Stack.Screen name="contacts" options={{ title: t('nav.contacts') }} />
         <Stack.Screen name="nearby" options={{ title: t('nav.nearby') }} />

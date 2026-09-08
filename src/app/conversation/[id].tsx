@@ -34,7 +34,7 @@ export default function ConversationScreen() {
   const capture = useAudioCapture();
 
   const [pending, setPending] = useState<ConversationMessage[]>([]);
-  const [sending, setSending] = useState(false);
+  const [inFlight, setInFlight] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   /** true dès que l'utilisateur local déclenche lui-même la sortie. */
@@ -60,44 +60,50 @@ export default function ConversationScreen() {
     return merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [messages, pending]);
 
+  /** Envoie un segment audio (coupé automatiquement ou à la fin) + bulle optimiste. */
+  const sendSegment = useCallback(
+    async (segment: { uri: string }) => {
+      if (!id || !session || !myLang || !otherLang) return;
+      const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const optimistic: ConversationMessage = {
+        id: `pending-${clientId}`,
+        sessionId: id,
+        senderId: user?.id ?? '',
+        sourceLanguage: myLang as LanguageCode,
+        targetLanguage: otherLang as LanguageCode,
+        originalTranscript: '',
+        translatedText: '',
+        status: 'processing',
+        clientId,
+        createdAt: new Date().toISOString(),
+      };
+      setPending((p) => [...p, optimistic]);
+      setInFlight((n) => n + 1);
+      Haptics.selectionAsync().catch(() => {});
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+      try {
+        await conversationsService.sendVoiceMessage(id, segment.uri, clientId);
+      } catch (e) {
+        setPending((p) => p.map((m) => (m.clientId === clientId ? { ...m, status: 'failed' } : m)));
+        setMicError(e instanceof ApiRequestError ? e.message : t('conv.sendFailed'));
+      } finally {
+        setInFlight((n) => Math.max(0, n - 1));
+      }
+    },
+    [id, session, myLang, otherLang, user?.id, t],
+  );
+
   const onRecordStart = useCallback(async () => {
     setMicError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    const ok = await capture.start();
+    const ok = await capture.start(sendSegment);
     if (!ok) setMicError(t('conv.micNotAllowed'));
-  }, [capture, t]);
+  }, [capture, sendSegment, t]);
 
   const onRecordStop = useCallback(async () => {
     const segment = await capture.stop();
-    if (!segment || !id || !session || !myLang || !otherLang) return;
-    const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const optimistic: ConversationMessage = {
-      id: `pending-${clientId}`,
-      sessionId: id,
-      senderId: user?.id ?? '',
-      sourceLanguage: myLang as LanguageCode,
-      targetLanguage: otherLang as LanguageCode,
-      originalTranscript: '',
-      translatedText: '',
-      status: 'processing',
-      clientId,
-      createdAt: new Date().toISOString(),
-    };
-    setPending((p) => [...p, optimistic]);
-    setSending(true);
-    Haptics.selectionAsync().catch(() => {});
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-    try {
-      await conversationsService.sendVoiceMessage(id, segment.uri, clientId);
-    } catch (e) {
-      setPending((p) =>
-        p.map((m) => (m.clientId === clientId ? { ...m, status: 'failed' } : m)),
-      );
-      setMicError(e instanceof ApiRequestError ? e.message : t('conv.sendFailed'));
-    } finally {
-      setSending(false);
-    }
-  }, [capture, id, session, myLang, otherLang, user?.id, t]);
+    if (segment) void sendSegment(segment);
+  }, [capture, sendSegment]);
 
   async function leave() {
     leavingRef.current = true;
@@ -221,15 +227,19 @@ export default function ConversationScreen() {
           <Pressable
             onPressIn={onRecordStart}
             onPressOut={onRecordStop}
-            disabled={sending || !active}
+            disabled={!active}
             style={[
               styles.mic,
               {
                 backgroundColor: capture.isRecording ? theme.danger : theme.tint,
-                opacity: sending || !active ? 0.5 : 1,
+                opacity: !active ? 0.5 : 1,
               },
             ]}>
-            {sending ? (
+            {capture.isRecording ? (
+              <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
+                {t('conv.release')}
+              </ThemedText>
+            ) : inFlight > 0 ? (
               <View style={styles.micRow}>
                 <ActivityIndicator color={theme.tintText} />
                 <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
@@ -238,7 +248,7 @@ export default function ConversationScreen() {
               </View>
             ) : (
               <ThemedText style={[styles.micLabel, { color: theme.tintText }]}>
-                {capture.isRecording ? t('conv.release') : t('conv.hold')}
+                {t('conv.hold')}
               </ThemedText>
             )}
           </Pressable>

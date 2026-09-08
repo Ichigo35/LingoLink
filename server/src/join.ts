@@ -25,9 +25,12 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-function bouncePage(scheme: string, token: string): string {
+function bouncePage(scheme: string, webUrl: string | undefined, token: string): string {
   const deep = `${scheme}://join/${encodeURIComponent(token)}`;
-  const safeDeep = escapeHtml(deep);
+  const web = webUrl ? `${webUrl.replace(/\/$/, '')}/join/${encodeURIComponent(token)}` : null;
+  const webBtn = web
+    ? `<a class="btn ghost" href="${escapeHtml(web)}">Continuer dans le navigateur</a>`
+    : '';
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -39,23 +42,26 @@ function bouncePage(scheme: string, token: string): string {
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background:#2F6BFF; color:#fff; padding:24px; box-sizing:border-box; text-align:center; }
-  .card { max-width:360px; }
-  h1 { font-size:1.4rem; margin:0 0 8px; }
-  p { opacity:.9; line-height:1.5; margin:0 0 24px; }
-  a.btn { display:inline-block; background:#fff; color:#2F6BFF; font-weight:700;
+  .card { max-width:360px; display:flex; flex-direction:column; gap:12px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  p { opacity:.9; line-height:1.5; margin:0 0 12px; }
+  a.btn { display:block; background:#fff; color:#2F6BFF; font-weight:700;
     text-decoration:none; padding:14px 24px; border-radius:14px; font-size:1.05rem; }
-  .hint { margin-top:20px; font-size:.85rem; opacity:.75; }
+  a.btn.ghost { background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.6); }
+  .hint { margin-top:12px; font-size:.85rem; opacity:.75; }
 </style>
 </head>
 <body>
   <div class="card">
     <h1>Lingo Link</h1>
-    <p>Ouverture de la conversation dans l'application…</p>
-    <a class="btn" href="${safeDeep}">Ouvrir dans Lingo Link</a>
-    <p class="hint">Si rien ne se passe, installez Lingo Link puis rouvrez ce lien.</p>
+    <p>Rejoindre la conversation</p>
+    <a class="btn" href="${escapeHtml(deep)}">Ouvrir dans l'application</a>
+    ${webBtn}
+    <p class="hint">L'app n'est pas installée ? Continuez dans le navigateur.</p>
   </div>
   <script>
-    setTimeout(function () { window.location.href = ${JSON.stringify(deep)}; }, 300);
+    // Tente l'app immédiatement (sans effet si elle n'est pas installée).
+    setTimeout(function () { window.location.href = ${JSON.stringify(deep)}; }, 200);
   </script>
 </body>
 </html>`;
@@ -82,7 +88,7 @@ export function registerJoinRoutes(app: Hono<AppEnv>) {
     if (!token || !TOKEN_RE.test(token)) {
       return c.text('Lien de conversation invalide.', 400);
     }
-    return c.html(bouncePage(c.env.APP_SCHEME || 'lingolink', token), 200, {
+    return c.html(bouncePage(c.env.APP_SCHEME || 'lingolink', c.env.WEB_APP_URL, token), 200, {
       'Cache-Control': 'no-store',
     });
   });

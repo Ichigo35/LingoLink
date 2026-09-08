@@ -19,6 +19,7 @@
   "vars": {
     "BETTER_AUTH_URL": "https://lingolink-api.ichigo35.workers.dev",
     "APP_SCHEME": "lingolink",
+    "WEB_APP_URL": "https://lingolink-web.pages.dev",
     // Chaîne de repli : essayés dans l'ordre, on passe au suivant quand le quota
     // gratuit du jour d'un modèle est épuisé (voir server/src/gemini.ts).
     "GEMINI_MODEL": "gemini-2.5-flash,gemini-3-flash-preview,gemini-3.7-flash,gemini-3.5-flash"

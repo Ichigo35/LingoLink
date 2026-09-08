@@ -6,7 +6,7 @@
 
 import type { LanguageCode } from '@/config/languages';
 import { apiRequest } from '@/lib/api-client';
-import { authClient } from '@/lib/auth-client';
+import { getAuthCookie } from '@/lib/auth-client';
 import type { ContactProfile } from '@/services/contacts';
 
 export type InboxEvent =
@@ -42,7 +42,7 @@ export function createInboxChannel(): InboxChannel {
   async function connect() {
     if (closed) return;
     try {
-      const cookie = (await authClient.getCookie()) ?? null;
+      const cookie = (await getAuthCookie()) ?? null;
       const { ticket, wsUrl } = await apiRequest<{ ticket: string; wsUrl: string }>(
         '/api/inbox/ticket',
         { method: 'POST', cookie },

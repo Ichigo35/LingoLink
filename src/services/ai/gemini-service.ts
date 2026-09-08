@@ -6,7 +6,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { apiRequest } from '@/lib/api-client';
-import { authClient } from '@/lib/auth-client';
+import { getAuthCookie } from '@/lib/auth-client';
 import type {
   AITranslationService,
   ProcessSpeechCallback,
@@ -40,7 +40,7 @@ async function readAudioBase64(uri: string): Promise<string> {
 }
 
 async function cookie(): Promise<string | null> {
-  return (await authClient.getCookie()) ?? null;
+  return (await getAuthCookie()) ?? null;
 }
 
 export class GeminiAIService implements AITranslationService {

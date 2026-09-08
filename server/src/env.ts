@@ -15,6 +15,8 @@ export interface Env {
   BETTER_AUTH_URL: string;
   /** Scheme deep link de l'app mobile (pour trustedOrigins). */
   APP_SCHEME: string;
+  /** URL de la version web (Cloudflare Pages) — page de rebond + trustedOrigins. */
+  WEB_APP_URL?: string;
   /** Google OAuth — vide = fournisseur désactivé. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

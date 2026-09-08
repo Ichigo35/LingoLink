@@ -10,7 +10,7 @@
  */
 
 import { apiRequest } from '@/lib/api-client';
-import { authClient } from '@/lib/auth-client';
+import { getAuthCookie } from '@/lib/auth-client';
 import type { ConversationMessage, ConversationSession } from '@/types';
 
 export interface PresenceParticipant {
@@ -67,7 +67,7 @@ export function createRealtimeChannel(sessionId: string): RealtimeChannel {
   async function connect() {
     if (closed) return;
     try {
-      const cookie = (await authClient.getCookie()) ?? null;
+      const cookie = (await getAuthCookie()) ?? null;
       const { ticket, wsUrl } = await apiRequest<TicketResponse>(
         `/api/sessions/${encodeURIComponent(sessionId)}/realtime-ticket`,
         { method: 'POST', cookie },

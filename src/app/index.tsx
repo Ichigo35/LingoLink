@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ActionCard } from '@/components/ui/action-card';
@@ -15,6 +15,8 @@ export default function HomeScreen() {
   const theme = useTheme();
   const t = useT();
   const { isGuest, user } = useAuth();
+  // Web = version « rejoindre + converser » uniquement (cf. join HTTPS).
+  const webJoinOnly = Platform.OS === 'web';
   const activeSession = useSessionStore((s) => s.session);
   const resumable = activeSession && (activeSession.status === 'active' || activeSession.status === 'waiting');
   const username = (user as { username?: string | null } | null)?.username;
@@ -64,36 +66,45 @@ export default function HomeScreen() {
       ) : null}
 
       <View style={styles.grid}>
+        {!webJoinOnly ? (
+          <ActionCard
+            icon="⚡"
+            title={t('home.newConversation')}
+            subtitle={t('home.newConversation.sub')}
+            emphasis
+            onPress={() => router.push('/new-conversation')}
+          />
+        ) : null}
         <ActionCard
-          icon="⚡"
-          title={t('home.newConversation')}
-          subtitle={t('home.newConversation.sub')}
-          emphasis
-          onPress={() => router.push('/new-conversation')}
-        />
-        <ActionCard
-          icon="📷"
-          title={t('home.scan')}
-          subtitle={t('home.scan.sub')}
+          icon={webJoinOnly ? '🔗' : '📷'}
+          title={webJoinOnly ? t('home.joinWeb') : t('home.scan')}
+          subtitle={webJoinOnly ? t('home.joinWeb.sub') : t('home.scan.sub')}
+          emphasis={webJoinOnly}
           onPress={() => router.push('/scan')}
         />
-        <ActionCard
-          icon="👥"
-          title={t('home.contacts')}
-          subtitle={t('home.contacts.sub')}
-          onPress={() => router.push('/contacts')}
-        />
-        <ActionCard
-          icon="📍"
-          title={t('home.nearby')}
-          subtitle={t('home.nearby.sub')}
-          onPress={() => router.push('/nearby')}
-        />
+        {!webJoinOnly ? (
+          <>
+            <ActionCard
+              icon="👥"
+              title={t('home.contacts')}
+              subtitle={t('home.contacts.sub')}
+              onPress={() => router.push('/contacts')}
+            />
+            <ActionCard
+              icon="📍"
+              title={t('home.nearby')}
+              subtitle={t('home.nearby.sub')}
+              onPress={() => router.push('/nearby')}
+            />
+          </>
+        ) : null}
       </View>
 
-      <ThemedText style={[styles.footer, { color: theme.textSecondary }]}>
-        {t('home.footer')}
-      </ThemedText>
+      {!webJoinOnly ? (
+        <ThemedText style={[styles.footer, { color: theme.textSecondary }]}>
+          {t('home.footer')}
+        </ThemedText>
+      ) : null}
     </Screen>
   );
 }

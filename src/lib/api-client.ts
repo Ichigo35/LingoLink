@@ -7,6 +7,7 @@
  */
 
 import { env } from '@/config/env';
+import { getBearerToken } from '@/lib/auth-client';
 
 export interface ApiError {
   status: number;
@@ -56,11 +57,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   try {
+    // Web : le cookie de session ne peut pas être posé manuellement (en-tête
+    // interdit) ni envoyé cross-site de façon fiable → jeton bearer.
+    const bearer = accessToken ?? getBearerToken();
     const response = await fetch(`${env.apiBaseUrl}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
         ...(cookie ? { Cookie: cookie } : {}),
       },
       body: body != null ? JSON.stringify(body) : undefined,

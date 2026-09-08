@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,9 @@ export default function WelcomeScreen() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
   useEffect(() => {
+    // Google OAuth : natif uniquement (le flux web sur domaine séparé n'est pas
+    // câblé — la version web est en mode invité).
+    if (Platform.OS === 'web') return;
     authService
       .getServerConfig()
       .then((cfg) => setGoogleEnabled(cfg.googleEnabled))
