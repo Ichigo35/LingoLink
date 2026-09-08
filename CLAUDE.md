@@ -5,9 +5,10 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : les 10 phases du plan sont terminées, le backend est
-déployé, l'APK Android est buildé, l'app tourne sur simulateur iOS.** Le MVP est
-fonctionnel de bout en bout. **La liste "Reste à faire" initiale est terminée**
+**État au 2026-09-08 : MVP complet + 3 itérations de retours terrain.** Backend
+déployé (Worker `90e9aa76`), **version web déployée** (`lingolink-web.pages.dev`),
+APK `build-output/LingoLink.apk` à jour, app iOS sur simulateur.
+**La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
 rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
 (`preview_urls: false`, `workers_dev: true`), signature release Android.
