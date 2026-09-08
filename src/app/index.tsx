@@ -112,7 +112,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   header: { gap: Spacing.two, marginTop: Spacing.two, marginBottom: Spacing.three },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { fontSize: 30, fontWeight: '700' },
+  logo: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
   headerActions: { flexDirection: 'row', gap: Spacing.three },
   headerIcon: { fontSize: 22 },
   tagline: { fontSize: 16, lineHeight: 22 },

@@ -134,6 +134,7 @@ export default function NewConversationScreen() {
 const styles = StyleSheet.create({
   h1: {
     fontSize: 24,
+    lineHeight: 30,
     fontWeight: '700',
   },
   block: {

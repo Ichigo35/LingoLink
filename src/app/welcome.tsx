@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 34,
+    lineHeight: 42,
     fontWeight: '700',
   },
   tagline: {

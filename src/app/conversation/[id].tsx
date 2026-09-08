@@ -110,7 +110,7 @@ export default function ConversationScreen() {
       } else {
         setMicError(null);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        const ok = await capture.start(sendSegment);
+        const ok = await capture.start();
         if (ok) setRecording(true);
         else setMicError(t('conv.micNotAllowed'));
       }

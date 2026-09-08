@@ -191,7 +191,7 @@ export default function HostSessionScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 24, fontWeight: '700' },
+  title: { fontSize: 24, lineHeight: 30, fontWeight: '700' },
   center: { textAlign: 'center' },
   qrCard: {
     alignSelf: 'center',

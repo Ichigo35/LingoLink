@@ -5,9 +5,21 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : MVP complet + 6 itérations de retours terrain.** Backend
+**État au 2026-09-08 : MVP complet + 8 itérations de retours terrain.** Backend
 déployé (`lingolink-web.pages.dev` pour le web), APK `build-output/LingoLink.apk`
 à jour, app iOS sur simulateur.
+
+**Itération 2026-09-08 (8) — retours terrain :**
+18. **Retour au « record → stop → traduis »** : la traduction phrase-par-phrase
+   « en direct » (VAD, itér. 3/6) est **retirée** — pas assez fluide/précise.
+   `use-audio-capture.ts` simplifié (plus de poll `metering`, plus de coupe
+   auto) : `start()` enregistre, `stop()` renvoie le fichier complet → 1 seul
+   message par prise de parole. Le serveur streame toujours la sortie Gemini
+   (bulle qui se remplit progressivement).
+19. **En-tête « Lingo Link » rogné en haut** (`src/app/index.tsx`) : `styles.logo`
+   n'avait pas de `lineHeight` → héritait `lineHeight: 24` de `themed-text`
+   `styles.default` alors que `fontSize: 30` → glyphes coupés. Ajout d'un
+   `lineHeight` explicite.
 
 **Itération 2026-09-08 (6) — plus de langues + UI multilingue + direct plus réactif :**
 13. **Langues de conversation** : ajout `ja` (日本語), `ko` (한국어), `hi` (हिन्दी).
@@ -278,20 +290,19 @@ Clé = `msg:<userId>` / `ai:<userId>`. Dépassement → `429 {code:"rate_limited
 Best-effort par colo (pas global) — suffisant pour le contrôle de coût.
 Better Auth garde son rate limiting intégré côté `/api/auth/*`.
 
-## Capture audio / VAD
+## Capture audio
 
-`src/features/conversation/use-audio-capture.ts` : capture **avec segmentation
-automatique**. Bouton **appui unique** (start/stop) : 1er tap → `capture.start()`,
-2e tap → `capture.stop()` (`conversation/[id].tsx` `toggleRecord`, état local
+`src/features/conversation/use-audio-capture.ts` : enveloppe simple d'`expo-audio`,
+**un seul segment par prise de parole**. Bouton **appui unique** :
+1er tap → `capture.start()` (on parle librement, aussi longtemps qu'on veut),
+2e tap → `capture.stop()` → le fichier complet part une seule fois en
+transcription + traduction (`conversation/[id].tsx` `toggleRecord`, état local
 `recording`, `micBusyRef` anti-double-tap, `capture.cancel()` au démontage).
-Pendant l'enregistrement, un poll (~140 ms) lit `recorder.getStatus().metering` ;
-après ≥0,8 s de parole suivie de ~650 ms sous `-40 dBFS`, le segment est coupé →
-`onSegment()` (envoi + traduction immédiate) → nouveau segment. Coupe forcée à
-**6 s** (itér. 6 : plus court = rendu « live », au prix de plus de requêtes
-Gemini → remonter vers 8000 si `ai_quota` fréquent). `stop()` renvoie le dernier
-segment. `sendSegment()` partagé, compteur `inFlight` (plusieurs envois en
-parallèle). Côté serveur, `messages.ts` rediffuse les instantanés partiels au
-pair toutes les ~80 ms pendant que Gemini streame.
+**La segmentation automatique VAD phrase-par-phrase « en direct » a été retirée**
+(itér. 8 — pas assez fluide/précise en pratique ; retour au record → stop →
+traduis). Le serveur streame toujours la sortie Gemini et rediffuse au pair des
+instantanés partiels (`messages.ts`, ~80 ms) → la bulle se remplit
+progressivement, mais il n'y a plus qu'un message par prise de parole.
 
 **Upload audio — spécifique plateforme** : `src/services/conversations/read-audio.ts`
 (natif : `expo-file-system` lit le fichier local, mime déduit de l'extension) vs
@@ -353,9 +364,6 @@ session / contacts / proximité / Google sur le web.
   Auth + bouton « Continuer dans le navigateur » de la page `/join`.
 - **Écrans gardés** `Platform.OS === 'web'` : `welcome` (invité seul),
   `index` (carte « Rejoindre » seule), `scan` (saisie de code, pas de `CameraView`).
-- Le VAD (`use-audio-capture`) dépend du niveau `metering` (AudioContext
-  analyser) : dispo sur Chrome/Firefox, plus incertain ailleurs → au pire seule
-  la coupe à 12 s + le 2e tap s'appliquent (dégradation acceptable).
 - **Audio web** : `read-audio.web.ts` envoie le blob avec son vrai `blob.type`
   (`audio/webm` sur Chrome). Étape passée : mime forcé à `audio/mp4` → échec de
   transcription Gemini.

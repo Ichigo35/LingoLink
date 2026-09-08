@@ -142,7 +142,7 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  h1: { fontSize: 24, fontWeight: '700' },
+  h1: { fontSize: 24, lineHeight: 30, fontWeight: '700' },
   center: { textAlign: 'center' },
   cameraWrap: {
     flex: 1,

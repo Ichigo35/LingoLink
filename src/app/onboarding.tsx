@@ -91,7 +91,7 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  h1: { fontSize: 26, fontWeight: '700' },
+  h1: { fontSize: 26, lineHeight: 33, fontWeight: '700' },
   block: { gap: Spacing.two, marginTop: Spacing.three },
   label: { fontSize: 14, fontWeight: '600' },
   input: {

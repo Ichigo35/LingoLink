@@ -1,12 +1,10 @@
 /**
- * Capture audio (§8) — enveloppe `expo-audio` avec **segmentation automatique
- * sur les pauses** (VAD léger basé sur le niveau sonore).
+ * Capture audio (§8) — enveloppe simple d'`expo-audio`.
  *
- * Tant que l'utilisateur maintient le bouton, on surveille le niveau : dès qu'un
- * silence suffisant suit de la parole, on coupe le segment courant, on le
- * remonte via `onSegment` (→ envoyé + traduit immédiatement) et on repart sur un
- * nouveau segment, sans relâcher. Un long monologue est ainsi traduit
- * phrase par phrase au fil de l'eau. `stop()` renvoie le dernier segment.
+ * Un seul segment par prise de parole : `start()` lance l'enregistrement,
+ * `stop()` l'arrête et renvoie le fichier complet (transcrit + traduit ensuite,
+ * une fois). Pas de découpage automatique sur les pauses — la traduction
+ * phrase-par-phrase « en direct » a été retirée (pas assez fluide/précise).
  */
 
 import {
@@ -27,23 +25,8 @@ export interface AudioSegment {
 
 export type MicPermission = 'unknown' | 'granted' | 'denied';
 
-/** Segments trop courts = bruit / appui accidentel. */
-const MIN_SEGMENT_MS = 600;
-/**
- * Réglages VAD calibrés pour un rendu "live" : on coupe une phrase tôt pour
- * l'envoyer en traduction sans attendre. Compromis assumé — plus les coupures
- * sont fréquentes, plus on consomme de requêtes Gemini (quota gratuit limité) :
- * remonter MAX_SEGMENT_MS vers 8000 si les erreurs `ai_quota` deviennent fréquentes.
- */
-/** Pas de coupure avant d'avoir au moins ça de parole dans le segment. */
-const MIN_SPEECH_MS = 800;
-/** Silence (sous le seuil) à tenir pour déclencher une coupure. */
-const SILENCE_HOLD_MS = 650;
-/** Coupure forcée d'un segment qui n'en finit pas (parole continue). */
-const MAX_SEGMENT_MS = 6_000;
-/** Seuil de niveau (dBFS) : au-dessus = parole, en dessous = silence. */
-const SPEECH_DB = -40;
-const POLL_MS = 140;
+/** En dessous = appui accidentel / bruit, on ignore. */
+const MIN_SEGMENT_MS = 400;
 
 /**
  * Réglage optimisé pour la voix : mono 16 kHz ~24 kbps AAC. Fichier ~5x plus
@@ -72,13 +55,7 @@ export function useAudioCapture() {
   const state = useAudioRecorderState(recorder);
   const [permission, setPermission] = useState<MicPermission>('unknown');
 
-  const segmentStartRef = useRef(0);
-  const lastLoudRef = useRef(0);
-  const hadSpeechRef = useRef(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const cuttingRef = useRef(false);
-  const onSegmentRef = useRef<((seg: AudioSegment) => void) | null>(null);
-  const activeRef = useRef(false);
+  const startedAtRef = useRef(0);
 
   const ensurePermission = useCallback(async (): Promise<boolean> => {
     const res = await requestRecordingPermissionsAsync();
@@ -86,92 +63,30 @@ export function useAudioCapture() {
     return res.granted;
   }, []);
 
-  const stopPoll = useCallback(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = null;
-  }, []);
-
-  const beginSegment = useCallback(async () => {
+  const start = useCallback(async (): Promise<boolean> => {
+    if (!(await ensurePermission())) return false;
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
     await recorder.prepareToRecordAsync();
     recorder.record();
-    const now = Date.now();
-    segmentStartRef.current = now;
-    lastLoudRef.current = now;
-    hadSpeechRef.current = false;
-  }, [recorder]);
+    startedAtRef.current = Date.now();
+    return true;
+  }, [ensurePermission, recorder]);
 
-  /** Termine le segment courant et renvoie son fichier (ou null si négligeable). */
-  const finishSegment = useCallback(async (): Promise<AudioSegment | null> => {
+  const stop = useCallback(async (): Promise<AudioSegment | null> => {
+    let uri: string | null = null;
     try {
-      await recorder.stop();
+      if (recorder.isRecording) await recorder.stop();
+      uri = recorder.uri;
     } catch {
-      return null;
+      uri = null;
     }
-    const durationMs = Date.now() - segmentStartRef.current;
-    const uri = recorder.uri;
-    if (!uri || durationMs < MIN_SEGMENT_MS || !hadSpeechRef.current) return null;
+    await setAudioModeAsync({ allowsRecording: false });
+    const durationMs = Date.now() - startedAtRef.current;
+    if (!uri || durationMs < MIN_SEGMENT_MS) return null;
     return { uri, durationMs };
   }, [recorder]);
 
-  const tick = useCallback(async () => {
-    if (!activeRef.current || cuttingRef.current) return;
-    const level = recorder.getStatus().metering ?? -160;
-    const now = Date.now();
-    if (level > SPEECH_DB) {
-      lastLoudRef.current = now;
-      hadSpeechRef.current = true;
-    }
-    const sinceStart = now - segmentStartRef.current;
-    const sinceLoud = now - lastLoudRef.current;
-    const pauseCut =
-      hadSpeechRef.current && sinceStart > MIN_SPEECH_MS && sinceLoud > SILENCE_HOLD_MS;
-    const forceCut = hadSpeechRef.current && sinceStart > MAX_SEGMENT_MS;
-    if (!pauseCut && !forceCut) return;
-
-    cuttingRef.current = true;
-    try {
-      const seg = await finishSegment();
-      if (seg) onSegmentRef.current?.(seg);
-      if (activeRef.current) await beginSegment();
-    } catch {
-      /* on retentera au prochain tick */
-    } finally {
-      cuttingRef.current = false;
-    }
-  }, [recorder, finishSegment, beginSegment]);
-
-  const start = useCallback(
-    async (onSegment?: (seg: AudioSegment) => void): Promise<boolean> => {
-      if (!(await ensurePermission())) return false;
-      onSegmentRef.current = onSegment ?? null;
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      activeRef.current = true;
-      cuttingRef.current = false;
-      await beginSegment();
-      if (onSegment) {
-        stopPoll();
-        pollRef.current = setInterval(() => void tick(), POLL_MS);
-      }
-      return true;
-    },
-    [ensurePermission, beginSegment, stopPoll, tick],
-  );
-
-  const stop = useCallback(async (): Promise<AudioSegment | null> => {
-    activeRef.current = false;
-    stopPoll();
-    // Laisse une éventuelle coupure en cours se terminer.
-    for (let i = 0; i < 20 && cuttingRef.current; i++) {
-      await new Promise((r) => setTimeout(r, 25));
-    }
-    const seg = recorder.isRecording ? await finishSegment() : null;
-    await setAudioModeAsync({ allowsRecording: false });
-    return seg;
-  }, [recorder, finishSegment, stopPoll]);
-
   const cancel = useCallback(async () => {
-    activeRef.current = false;
-    stopPoll();
     if (recorder.isRecording) {
       try {
         await recorder.stop();
@@ -180,7 +95,7 @@ export function useAudioCapture() {
       }
     }
     await setAudioModeAsync({ allowsRecording: false });
-  }, [recorder, stopPoll]);
+  }, [recorder]);
 
   return {
     isRecording: state.isRecording,

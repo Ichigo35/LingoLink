@@ -155,7 +155,7 @@ export default function JoinScreen() {
 }
 
 const styles = StyleSheet.create({
-  logo: { fontSize: 26, fontWeight: '700', marginBottom: Spacing.four },
+  logo: { fontSize: 26, lineHeight: 34, fontWeight: '700', marginBottom: Spacing.four },
   title: { fontSize: 22, fontWeight: '700', textAlign: 'center' },
   center: { textAlign: 'center' },
   langCard: {
