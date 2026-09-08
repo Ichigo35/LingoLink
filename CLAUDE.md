@@ -7,10 +7,10 @@ sections). Répondre **toujours en français**.
 
 **État au 2026-09-08 : les 10 phases du plan sont terminées, le backend est
 déployé, l'APK Android est buildé, l'app tourne sur simulateur iOS.** Le MVP est
-fonctionnel de bout en bout. **i18n (fr/en) : TOUS les écrans sont traduits** —
-parcours principal + écrans secondaires (profil, contacts, proximité, réglages,
-onboarding, host, join, scan, modale d'invitation, error-boundary, titres de la
-nav). Suite = itérations / corrections / polish visuel.
+fonctionnel de bout en bout. **La liste "Reste à faire" initiale est terminée**
+(2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
+logo/icône custom, durcissement wrangler, signature release Android.
+Suite = itérations / corrections / pistes libres (voir bas de fichier).
 
 ## Contraintes imposées par l'utilisateur
 
@@ -48,8 +48,14 @@ nav). Suite = itérations / corrections / polish visuel.
   `cd android && ANDROID_HOME="$HOME/Library/Android/sdk"
   JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
   ./gradlew :app:assembleRelease [-PreactNativeArchitectures=arm64-v8a]`.
-  Signé avec la clé debug (OK pour test). Résultat copié dans `build-output/`
-  (gitignored). arm64 ≈ 55 Mo, universel ≈ 132 Mo.
+  Résultat → `build-output/` (gitignored). arm64 ≈ 55 Mo, universel ≈ 132 Mo.
+- **Signature release** : plugin `plugins/withAndroidReleaseSigning.js` (réinjecté
+  au prebuild). Si `credentials/keystore.properties` existe → APK signé avec le
+  keystore de prod (`credentials/lingolink-release.jks`, alias `lingolink`,
+  SHA-256 `55:A8:0A:07:D4:FE:E3:1F:00:E4:F4:78:84:E5:E4:A8:DB:06:0A:DB:D9:84:B7:4E:21:CD:8B:F3:E6:78:A6:7C`).
+  Sinon → clé debug (test OK). `credentials/` gitignored — **à sauvegarder hors
+  repo** (perte = plus de MAJ possible sur le store). Modèle :
+  `credentials/keystore.properties.example`.
 - **iOS simulateur** : `npx expo run:ios` (build Xcode + pod install la 1ʳᵉ fois,
   ~2 Go DerivedData). Si le process se fige après le build : booter + installer à
   la main via `xcrun simctl boot|install|launch` (l'`.app` est dans DerivedData
@@ -178,5 +184,9 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
   (ImageMagick, déterministe) dans `assets/icon-src/`. Placeholders du template
   Expo supprimés.
 - ~~`preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`~~ ✅ fait (2026-09-08).
+- ~~APK signé release (keystore de prod)~~ ✅ fait (2026-09-08) — plugin +
+  `credentials/` local. APK release vérifié signé (SHA-256 du keystore, schéma v2).
 - ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
-- APK signé release (clé de prod) si distribution hors test.
+- **La liste initiale est terminée.** Pistes libres : monitoring d'erreurs
+  (Sentry), rate-limiting du proxy Gemini, tests automatisés, AAB pour le Play
+  Store, i18n i18n de `ai-test` si un jour non-dev.

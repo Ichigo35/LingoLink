@@ -42,6 +42,9 @@ yarn-error.*
 server/.dev.vars
 server/.wrangler/
 
+# Android release signing (le .jks est déjà couvert par *.jks plus haut)
+credentials/keystore.properties
+
 # typescript
 *.tsbuildinfo
 
