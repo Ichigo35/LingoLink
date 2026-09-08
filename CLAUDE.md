@@ -5,122 +5,48 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : MVP complet + 8 itérations de retours terrain.** Backend
-déployé (`lingolink-web.pages.dev` pour le web), APK `build-output/LingoLink.apk`
-à jour, app iOS sur simulateur.
+## État (2026-09-08) — MVP complet + 8 itérations de retours terrain
 
-**Itération 2026-09-08 (8) — retours terrain :**
-18. **Retour au « record → stop → traduis »** : la traduction phrase-par-phrase
-   « en direct » (VAD, itér. 3/6) est **retirée** — pas assez fluide/précise.
-   `use-audio-capture.ts` simplifié (plus de poll `metering`, plus de coupe
-   auto) : `start()` enregistre, `stop()` renvoie le fichier complet → 1 seul
-   message par prise de parole. Le serveur streame toujours la sortie Gemini
-   (bulle qui se remplit progressivement).
-19. **En-tête « Lingo Link » rogné en haut** (`src/app/index.tsx`) : `styles.logo`
-   n'avait pas de `lineHeight` → héritait `lineHeight: 24` de `themed-text`
-   `styles.default` alors que `fontSize: 30` → glyphes coupés. Ajout d'un
-   `lineHeight` explicite.
+- **Worker** `lingolink-api` déployé, version **`d02ac2e8`** (inchangé depuis
+  itér. 7). URL `https://lingolink-api.ichigo35.workers.dev`.
+- **Web** déployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`.
+- **APK** `build-output/LingoLink.apk` à jour (itér. 8). App iOS sur simulateur.
+- Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
+  langue/statut sont du `text` libre).
+- Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
+  de rétention (cron), rate limiting proxy Gemini, logo/icône, durcissement
+  `wrangler.jsonc`, signature release Android.
 
-**Itération 2026-09-08 (6) — plus de langues + UI multilingue + direct plus réactif :**
-13. **Langues de conversation** : ajout `ja` (日本語), `ko` (한국어), `hi` (हिन्दी).
-   `src/config/languages.ts` + `server/src/languages.ts` + `LANGUAGE_NAMES`
-   (`server/src/ai.ts`). Pas de migration (colonnes `text`, aucune contrainte CHECK).
-14. **UI dans la langue du téléphone** : `translations.ts` a désormais 8 blocs
-   (`fr, en, lo, th, zh, ja, ko, hi` — mêmes clés, tsc l'impose). Nouveau
-   `src/i18n/device-locale.ts` (`resolveInitialUiLanguage()` via `expo-localization`
-   `getLocales()`). `settings-store` : `UiLanguage = LanguageCode`, flag
-   `uiLanguageExplicit` ; tant qu'il est `false`, l'UI suit la locale de
-   l'appareil (repli `en`), sinon le choix Réglages prime. Repli d'exécution
-   i18n : `lang → en → fr → clé`. Sélecteur Réglages généré depuis `UI_LANGUAGES`.
-   ⚠️ Bloc `lo` traduit à la machine — à faire relire par un locuteur natif.
-15. **Direct plus réactif** (pas de Gemini Live — facturation off, choix
-   utilisateur) : VAD `use-audio-capture.ts` `MAX_SEGMENT_MS` 12000→6000,
-   `SILENCE_HOLD_MS` 850→650, `MIN_SPEECH_MS` 1100→800 → phrases envoyées ≤ 6 s.
-   Throttle broadcast `message_update` `messages.ts` 120→80 ms. `MessageBubble` :
-   état « en écoute » explicite sur `processing`|`partial` sans transcript.
-Worker redéployé (`65ceeb07`), web redéployé, APK régénéré (`LingoLink.apk`, 55 Mo).
-Nouvelle dépendance app : `expo-localization ~57.0.1`.
+### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
-**Itération 2026-09-08 (7) — retours terrain :**
-16. **Changer de langue en cours de conversation** : nouvelle route
-   `POST /api/sessions/:id/language` (`server/src/sessions.ts`) — chacun ne
-   modifie que SON côté (`creator_language` / `participant_language`), l'autre
-   téléphone est notifié par `session_status`. Client :
-   `conversationsService.setMyLanguage`, barre de langue tappable sous le topbar
-   de `conversation/[id].tsx` (`LanguageSelector` dans un `Modal`). Les messages
-   déjà envoyés gardent leur langue (figée à l'envoi). Refus si = langue de l'autre.
-17. **Garde « une seule conversation à la fois »** :
-   `src/features/conversation/conversation-guard.tsx` (provider + `useConversationGuard()`,
-   monté dans `_layout.tsx` autour du `<Stack>`). Toute action démarrer/rejoindre
-   (new-conversation `qr`/`link`, scan, `/join/:token`, contact, proximité,
-   invitation entrante) passe par `guard(proceed)` → si une session
-   `waiting|connecting|active` existe, `ConfirmDialog` « Quitter la conversation
-   en cours pour accéder à la nouvelle ? » (Oui = end/leave puis proceed).
-   `session-store.clear()` appelé sur sortie propre (`conversation/[id].tsx`
-   `leave()` + peer-left) — avant, jamais appelé → garde bloquait à tort.
-   Deep link entrant pendant une conversation : plus de saut auto vers `/join`.
-Worker redéployé (`d02ac2e8`), web + APK régénérés.
-**La liste "Reste à faire" initiale est terminée**
-(2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
-rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
-(`preview_urls: false`, `workers_dev: true`), signature release Android.
-Backend redéployé avec tout ça (dernière version `596f309a`).
-Suite = itérations / corrections / pistes libres (voir bas de fichier).
-
-**Itération 2026-09-08 (2) — retours terrain d'un test à 2 téléphones :**
-1. Échecs de traduction en cascade = quota gratuit Gemini `gemini-3.5-flash`
-   (20 req/jour/projet) épuisé → **chaîne de repli multi-modèles** (§ Latence),
-   messages d'erreur typés et affichés sur la bulle.
-2. Barre du haut de la conversation cachée par l'heure/wifi (Android) →
-   `SafeAreaView edges={['top','bottom']}` dans `conversation/[id].tsx`.
-3. Lien WhatsApp non cliquable → **lien HTTPS `/join/<token>` + App Links
-   Android** (§ Liens de partage).
-4. Sortie d'un participant non signalée → alerte « L'autre personne a quitté »
-   + invite à sortir (`conv.peerLeft*`), sur transition `status → ended`.
-5. Builds locaux : **un seul fichier par plateforme, écrasé** (§ Builds).
-Backend redéployé (version `e45159dd`).
-
-**Itération 2026-09-08 (3) :**
-6. **Traduction phrase-par-phrase** (VAD léger, `use-audio-capture.ts`) : pendant
-   l'enregistrement, coupe le segment à chaque pause + envoi/traduction
-   immédiate → un long monologue défile traduit au fil de l'eau. Coupe aussi à
-   12 s. Vrai temps-réel bidi (Gemini Live) = toujours reporté.
-7. **Version web** « rejoindre + converser » → Cloudflare **Pages**
-   `lingolink-web.pages.dev` (§ Version web). La page `/join` propose
-   « Continuer dans le navigateur » pour ceux sans l'app.
-Backend redéployé (version `90e9aa76`).
-
-**Itération 2026-09-08 (5) — retours terrain web :**
-11. **`Alert.alert` ne s'affiche pas sur RN Web** → bouton « Quitter » inerte et
-   pas d'alerte « l'autre personne a quitté » sur le web. Nouveau
-   `src/components/ui/confirm-dialog.tsx` (`Modal` RN, marche web + natif) ;
-   `conversation/[id].tsx` : états `leaveOpen` / `peerLeftDismissed` /
-   `leaving`, deux `<ConfirmDialog>`. `Alert` retiré de cet écran.
-12. **Écran QR/hôte : plus de code affiché** (`session/host.tsx`, `host.linkHint`
-   à la place de `host.codeLabel`) — le lien/QR suffit. La saisie manuelle web
-   (`scan.tsx`) accepte maintenant **le lien collé** (`extractJoinToken` →
-   `joinByToken`, sinon `joinByCode`), erreurs en inline (pas d'`Alert` web).
-   Clés i18n `scan.*` reformulées « coller le lien », `home.joinWeb.sub`,
-   `scan.codePlaceholder`.
-Pas de redéploiement backend. Web redéployé.
-
-**Itération 2026-09-08 (4) — retours terrain :**
-8. **Invitation par message = lien seul, aucun code.** `host.shareMessage` ne
-   contient plus `Code : {code}` (le code reste affiché sous le QR pour la saisie
-   manuelle web en secours). Capture du token de jointure durcie : plus
-   conditionnée à l'état de connexion (`useDeepLinkCapture` dans `_layout.tsx`) —
-   sur le web `Linking.useURL()` pouvait se résoudre après la connexion invité et
-   l'utilisateur retombait sur la saisie de code.
-9. **Traduction cassée depuis le web** : `expo-audio` produit un `blob:` (webm/opus
-   sur Chrome, mp4 sur Safari) et `expo-file-system` n'existe pas sur le web →
-   l'audio partait étiqueté `audio/mp4` alors que c'était du webm. Fix :
-   `src/services/conversations/read-audio.web.ts` lit le blob + son vrai
-   `blob.type`. Gemini accepte `audio/webm`.
-10. **Bouton micro = appui unique** (start/stop) au lieu de maintenir : 1er tap
-   démarre, on parle librement (phrases traduites au fil de l'eau via le VAD),
-   2e tap termine. `conversation/[id].tsx` (`toggleRecord`), clés i18n
-   `conv.talk` / `conv.stopTalk`. Plus fiable, surtout sur le web (souris).
-Pas de redéploiement backend (tout côté client). Web redéployé.
+- **Itér. 8** — (a) **retrait de la traduction phrase-par-phrase VAD** : pas assez
+  fluide/précise → retour au « tap Parler → parler → tap Terminer → 1 traduction »
+  (`use-audio-capture.ts` simplifié). (b) **titres rognés en haut** : `themed-text`
+  `styles.default` impose `lineHeight: 24` ; les titres à `fontSize` 24-34 sans
+  `lineHeight` héritaient 24 → glyphes coupés. `lineHeight` explicite ajouté
+  (« Lingo Link » accueil/welcome/join + `h1` new-conversation/scan/onboarding/host).
+  Pas de changement serveur.
+- **Itér. 7** — (a) **changer sa langue en cours de conversation** : route
+  `POST /api/sessions/:id/language` (chacun ne modifie que SON côté, broadcast
+  `session_status`), barre de langue tappable dans `conversation/[id].tsx`
+  (`LanguageSelector` dans un `Modal`), `conversationsService.setMyLanguage`.
+  Messages déjà envoyés inchangés (langue figée à l'envoi). (b) **garde « une
+  seule conversation à la fois »** (§ Garde). Worker `d02ac2e8`.
+- **Itér. 6** — (a) langues de conversation **`ja` / `ko` / `hi`** ajoutées.
+  (b) **UI multilingue + détection de la locale de l'appareil** (§ i18n) : 8 blocs
+  de traduction, `expo-localization`, `resolveInitialUiLanguage()`. ⚠️ bloc `lo`
+  traduit à la machine — à faire relire. (c) tuning VAD « direct plus réactif » —
+  **annulé à l'itér. 8**. Worker `65ceeb07`, dépendance `expo-localization ~57.0.1`.
+- **Itér. 5** — `ConfirmDialog` (`Modal` RN, marche web où `Alert.alert` est
+  inerte) pour « Quitter » + « l'autre a quitté » ; écran QR sans code ; saisie
+  web = lien collé. Web only.
+- **Itér. 4** — invitation = lien seul ; fix audio web (`read-audio.web.ts`, vrai
+  `blob.type`) ; bouton micro = appui unique (start/stop). Web only.
+- **Itér. 3** (Worker `90e9aa76`) — VAD phrase-par-phrase (retiré itér. 8) ;
+  version web sur Cloudflare Pages.
+- **Itér. 2** (Worker `e45159dd`) — chaîne de repli multi-modèles Gemini (§ Latence) ;
+  safe-area conversation ; lien HTTPS `/join/<token>` + App Links Android ;
+  alerte départ participant ; builds = 1 fichier écrasé.
 
 ## Contraintes imposées par l'utilisateur
 
@@ -237,10 +163,11 @@ src/
   config/          languages.ts (§18, centralisé), env.ts, session.ts
   features/        conversation/use-audio-capture.ts, conversation/conversation-guard.tsx
   hooks/           use-auth, use-live-session, use-app-realtime, use-theme, i18n via src/i18n
-  i18n/            translations.ts (fr/en, TOUS les écrans) + useT()/translate()
+  i18n/            translations.ts (8 langues, TOUS les écrans) + useT()/translate()
+                   + device-locale.ts (langue d'UI = locale de l'appareil)
   lib/             api-client.ts, auth-client.ts (better-auth expo)
   services/        ai/ auth/ conversations/ realtime/ inbox/ contacts/ nearby/
-  stores/          settings, session, new-conversation, pending-join, inbox
+  stores/          settings (uiLanguage + uiLanguageExplicit), session, new-conversation, pending-join, inbox
   types/
 server/            backend Cloudflare Worker (voir server/README.md pour les endpoints)
   src/             index, auth, ai, gemini, sessions, messages, realtime, inbox,
@@ -309,6 +236,32 @@ progressivement, mais il n'y a plus qu'un message par prise de parole.
 `read-audio.web.ts` (web : `fetch(blob:)` → `blob.arrayBuffer()` + **vrai**
 `blob.type`). Indispensable sur le web où `expo-audio` rend un `blob:` webm/opus
 et où deviner le mime donnait `audio/mp4` → Gemini n'arrivait pas à transcrire.
+
+## Une seule conversation à la fois (garde)
+
+`src/features/conversation/conversation-guard.tsx` : `ConversationGuardProvider`
+(monté dans `_layout.tsx` autour du `<Stack>`) + hook `useConversationGuard()` →
+`guard(proceed)`. Si `session-store.session` existe avec un statut
+`waiting|connecting|active`, `guard` ouvre un `ConfirmDialog`
+« Quitter la conversation en cours pour accéder à la nouvelle ? » (Oui/Non) ;
+« Oui » = `endSession` (créateur) / `leaveSession` (participant) + `clear()` puis
+`proceed()`. Enveloppent leur action : `new-conversation` (`chooseMethod` pour
+`qr`/`link`), `scan`, `join/[token]`, `contacts` (`startConversation`), `nearby`
+(`connect`), `conversation-invite-modal` (`accept`).
+`session-store.clear()` est appelé sur **toute sortie propre** (`conversation/[id].tsx`
+`leave()` + dialog « peer left ») — sinon la garde bloquait à tort après coup.
+`_layout.tsx` `useAuthRouting` : un deep link entrant ne redirige plus vers
+`/join/:token` si l'utilisateur est sur `conversation/[id]` (token consommé au retour).
+
+## Changer de langue en cours de conversation
+
+`POST /api/sessions/:id/language` (`server/src/sessions.ts`) : chaque participant
+ne modifie que **son** côté (`creator_language` / `participant_language` selon
+`isCreator`), refuse si = langue de l'autre, diffuse `session_status` au room.
+Client : `conversationsService.setMyLanguage`, barre de langue tappable sous le
+topbar de `conversation/[id].tsx` (réutilise `LanguageSelector` dans un `Modal`).
+Les messages déjà envoyés gardent leur `sourceLanguage`/`targetLanguage` (figés à
+l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
 
 ## Liens de partage / deep links
 
@@ -415,12 +368,13 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 
 ## Reste à faire (idées)
 
-**Itération 2026-09-08 — tous les items de la liste initiale sont faits** :
-i18n fr/en de tous les écrans (§ i18n), rétention cron (§ Rétention), rate
-limiting Gemini (§ Rate limiting), logo/icône custom (§ Builds), durcissement
-`wrangler.jsonc`, signature release Android (§ Builds). Backend redéployé.
-
-Pistes libres restantes :
+Pistes libres :
+- Faire **relire les traductions d'UI** (surtout `lo`, idéalement `th`/`hi`) par
+  un locuteur natif — le bloc `lo` est de la traduction machine.
+- **Gemini Live API (bidi mot-à-mot)** : rouvrir seulement si la facturation
+  Gemini est activée un jour (nécessiterait un streaming PCM natif + un proxy
+  WebSocket Worker/DO). Le « direct » VAD phrase-par-phrase a été essayé puis
+  retiré (itér. 8, pas assez fluide/précis).
 - Monitoring d'erreurs (Sentry) — bloqué : besoin d'un DSN de l'utilisateur.
 - Rate limiting Better Auth avec `storage: "database"` (migration `rateLimit`).
 - Tests automatisés (Vitest `@cloudflare/vitest-pool-workers` côté server).
