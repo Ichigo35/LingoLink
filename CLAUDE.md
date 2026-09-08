@@ -9,7 +9,9 @@ sections). Répondre **toujours en français**.
 déployé, l'APK Android est buildé, l'app tourne sur simulateur iOS.** Le MVP est
 fonctionnel de bout en bout. **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
-logo/icône custom, durcissement wrangler, signature release Android.
+rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
+(`preview_urls: false`, `workers_dev: true`), signature release Android.
+Backend redéployé avec tout ça (dernière version `596f309a`).
 Suite = itérations / corrections / pistes libres (voir bas de fichier).
 
 ## Contraintes imposées par l'utilisateur
@@ -32,8 +34,8 @@ Suite = itérations / corrections / pistes libres (voir bas de fichier).
   `lingolink-api`, compte tcha.jimmy@gmail.com `34cf747a1eaf3858a49e4fafaf9580e0`).
   5 secrets poussés via `server/deploy-secrets.sh`. `wrangler.jsonc`
   `vars.BETTER_AUTH_URL` = URL de prod ; `server/.dev.vars` garde `localhost` pour
-  `wrangler dev`. ⚠️ le trigger cron de rétention (ajouté 2026-09-08) s'active au
-  prochain `wrangler deploy`.
+  `wrangler dev`. Trigger cron de rétention + rate limiters + `preview_urls: false`
+  + `workers_dev: true` : ajoutés et **déployés** le 2026-09-08.
 - **Google OAuth** : redirect URIs `http://localhost:8787/...` + `https://
   lingolink-api.ichigo35.workers.dev/api/auth/callback/google` enregistrées.
   Écran de consentement en mode **Test**, `tcha.jimmy@gmail.com` = utilisateur test.
@@ -107,7 +109,7 @@ src/
   config/          languages.ts (§18, centralisé), env.ts, session.ts
   features/        conversation/use-audio-capture.ts
   hooks/           use-auth, use-live-session, use-app-realtime, use-theme, i18n via src/i18n
-  i18n/            translations.ts (fr/en, parcours principal) + useT()
+  i18n/            translations.ts (fr/en, TOUS les écrans) + useT()/translate()
   lib/             api-client.ts, auth-client.ts (better-auth expo)
   services/        ai/ auth/ conversations/ realtime/ inbox/ contacts/ nearby/
   stores/          settings, session, new-conversation, pending-join, inbox
@@ -115,8 +117,11 @@ src/
 server/            backend Cloudflare Worker (voir server/README.md pour les endpoints)
   src/             index, auth, ai, gemini, sessions, messages, realtime, inbox,
                    contacts, nearby, invites, session-room, user-inbox, tickets,
-                   tokens, db, retention
+                   tokens, db, retention, rate-limit
   migrations/       0001..0005
+plugins/           withAndroidReleaseSigning.js (config plugin Expo, signature release)
+assets/icon-src/   sources SVG du logo + build.sh (régénère assets/images/)
+credentials/       keystore release (gitignored, sauf keystore.properties.example)
 ```
 
 ## Langues MVP
@@ -191,18 +196,15 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 
 ## Reste à faire (idées)
 
-- ~~i18n des écrans secondaires~~ ✅ fait (2026-09-08).
-- ~~Rétention : purge des sessions/messages terminés (cron)~~ ✅ fait (2026-09-08).
-- ~~Icône/splash custom~~ ✅ fait (2026-09-08) — logo = **deux maillons/bulles
-  entrelacés** (le « Link ») en blanc sur `#2F6BFF`. Sources + `build.sh`
-  (ImageMagick, déterministe) dans `assets/icon-src/`. Placeholders du template
-  Expo supprimés.
-- ~~`preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`~~ ✅ fait (2026-09-08).
-- ~~APK signé release (keystore de prod)~~ ✅ fait (2026-09-08) — plugin +
-  `credentials/` local. APK release vérifié signé (SHA-256 du keystore, schéma v2).
-- ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
-- ~~rate-limiting du proxy Gemini~~ ✅ fait (2026-09-08).
-- **La liste initiale est terminée.** Pistes libres : monitoring d'erreurs
-  (Sentry — bloqué : besoin d'un DSN), rate limiting Better Auth avec storage
-  DB, tests automatisés (Vitest workers pool), AAB Play Store (repoussé),
-  i18n de `ai-test` si un jour non-dev.
+**Itération 2026-09-08 — tous les items de la liste initiale sont faits** :
+i18n fr/en de tous les écrans (§ i18n), rétention cron (§ Rétention), rate
+limiting Gemini (§ Rate limiting), logo/icône custom (§ Builds), durcissement
+`wrangler.jsonc`, signature release Android (§ Builds). Backend redéployé.
+
+Pistes libres restantes :
+- Monitoring d'erreurs (Sentry) — bloqué : besoin d'un DSN de l'utilisateur.
+- Rate limiting Better Auth avec `storage: "database"` (migration `rateLimit`).
+- Tests automatisés (Vitest `@cloudflare/vitest-pool-workers` côté server).
+- AAB pour le Play Store — **repoussé** (demande explicite de l'utilisateur).
+- `ai-test.tsx` : chaînes en dur, écran dev-only (`__DEV__`) — à i18n si un jour
+  exposé en prod.
