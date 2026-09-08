@@ -26,7 +26,8 @@ déployé (`lingolink-web.pages.dev` pour le web), APK `build-output/LingoLink.a
    `SILENCE_HOLD_MS` 850→650, `MIN_SPEECH_MS` 1100→800 → phrases envoyées ≤ 6 s.
    Throttle broadcast `message_update` `messages.ts` 120→80 ms. `MessageBubble` :
    état « en écoute » explicite sur `processing`|`partial` sans transcript.
-Backend à redéployer (langues serveur + throttle). Web + APK à régénérer.
+Worker redéployé (`65ceeb07`), web redéployé, APK régénéré (`LingoLink.apk`, 55 Mo).
+Nouvelle dépendance app : `expo-localization ~57.0.1`.
 **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
 rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
