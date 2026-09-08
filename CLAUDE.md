@@ -57,10 +57,11 @@ nav). Suite = itérations / corrections / polish visuel.
   `com.ichigo35.lingolink`). Metro sert le JS sur :8081.
 - `android/` et `ios/` sont **gitignored** (workflow managed, prebuild à la demande).
 - **Icône / splash** : `app.json` → `icon` (top-level, plus de `ios.icon`),
-  `expo-splash-screen` (`imageWidth: 200`), `android.adaptiveIcon`. Pour refaire les
-  assets : SVG plats (fills uniquement — le moteur SVG d'ImageMagick ignore
-  gradients et `stroke` seul) → `magick` supersample ×2 → PNG 1024. Le monochrome
-  Android = bulle blanche moins les 3 points en `-compose DstOut`.
+  `expo-splash-screen` (`imageWidth: 200`), `android.adaptiveIcon`. Logo = deux
+  anneaux à coins arrondis entrelacés (`assets/icon-src/link-ring.svg`, l'autre
+  maillon = ce SVG pivoté 180°). Régénérer : `bash assets/icon-src/build.sh`
+  (ImageMagick ; SVG en aplats — pas de gradient ni de `stroke` seul — mais
+  `fill-rule="evenodd"` OK pour le trou de l'anneau).
 
 ## Architecture
 
@@ -172,10 +173,10 @@ async en effet → `eslint-disable-next-line` avec justification (pattern déjà
 
 - ~~i18n des écrans secondaires~~ ✅ fait (2026-09-08).
 - ~~Rétention : purge des sessions/messages terminés (cron)~~ ✅ fait (2026-09-08).
-- ~~Icône/splash custom~~ ✅ fait (2026-09-08) — bulle de dialogue blanche + 3
-  points bleus sur `#2F6BFF`. Assets régénérés dans `assets/images/`
-  (`icon.png`, `splash-icon.png`, `favicon.png`, `android-icon-*.png`). Placeholders
-  du template Expo supprimés. Sources SVG + script `magick` dans le scratchpad.
+- ~~Icône/splash custom~~ ✅ fait (2026-09-08) — logo = **deux maillons/bulles
+  entrelacés** (le « Link ») en blanc sur `#2F6BFF`. Sources + `build.sh`
+  (ImageMagick, déterministe) dans `assets/icon-src/`. Placeholders du template
+  Expo supprimés.
+- ~~`preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`~~ ✅ fait (2026-09-08).
 - ai-test.tsx reste en dur (écran dev-only, `__DEV__`) — OK.
 - APK signé release (clé de prod) si distribution hors test.
-- `preview_urls = false` / `workers_dev` explicite dans `wrangler.jsonc`.

@@ -4,6 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // URL de prod = le sous-domaine workers.dev (gardé explicitement).
+  "workers_dev": true,
+  // Pas d'URL de preview par version (`*-<version>.lingolink-api.workers.dev`) :
+  // réduit la surface exposée, une seule URL publique.
+  "preview_urls": false,
   "observability": {
     "enabled": true
   },
