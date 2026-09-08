@@ -5,9 +5,9 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : MVP complet + 4 itérations de retours terrain.** Backend
-déployé (Worker `90e9aa76`, inchangé itér. 4), **version web redéployée**
-(`lingolink-web.pages.dev`), APK `build-output/LingoLink.apk` à jour (itér. 4),
+**État au 2026-09-08 : MVP complet + 5 itérations de retours terrain.** Backend
+déployé (Worker `90e9aa76`, inchangé depuis itér. 3), **version web redéployée**
+(`lingolink-web.pages.dev`), APK `build-output/LingoLink.apk` à jour (itér. 5),
 app iOS sur simulateur.
 **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
@@ -38,6 +38,20 @@ Backend redéployé (version `e45159dd`).
    `lingolink-web.pages.dev` (§ Version web). La page `/join` propose
    « Continuer dans le navigateur » pour ceux sans l'app.
 Backend redéployé (version `90e9aa76`).
+
+**Itération 2026-09-08 (5) — retours terrain web :**
+11. **`Alert.alert` ne s'affiche pas sur RN Web** → bouton « Quitter » inerte et
+   pas d'alerte « l'autre personne a quitté » sur le web. Nouveau
+   `src/components/ui/confirm-dialog.tsx` (`Modal` RN, marche web + natif) ;
+   `conversation/[id].tsx` : états `leaveOpen` / `peerLeftDismissed` /
+   `leaving`, deux `<ConfirmDialog>`. `Alert` retiré de cet écran.
+12. **Écran QR/hôte : plus de code affiché** (`session/host.tsx`, `host.linkHint`
+   à la place de `host.codeLabel`) — le lien/QR suffit. La saisie manuelle web
+   (`scan.tsx`) accepte maintenant **le lien collé** (`extractJoinToken` →
+   `joinByToken`, sinon `joinByCode`), erreurs en inline (pas d'`Alert` web).
+   Clés i18n `scan.*` reformulées « coller le lien », `home.joinWeb.sub`,
+   `scan.codePlaceholder`.
+Pas de redéploiement backend. Web redéployé.
 
 **Itération 2026-09-08 (4) — retours terrain :**
 8. **Invitation par message = lien seul, aucun code.** `host.shareMessage` ne
@@ -246,13 +260,20 @@ et où deviner le mime donnait `audio/mp4` → Gemini n'arrivait pas à transcri
   `lingolink-api.ichigo35.workers.dev`, `pathPrefix /join`). `src/app/+native-intent.ts`
   ramène l'URL HTTPS entrante au chemin interne `/join/<token>`. Le QR encode
   aussi cette URL HTTPS (toujours scannable, `extractJoinToken` gère les 2 formes).
-- **Le lien suffit, aucun code.** `host.shareMessage` (i18n) ne met plus le
-  `shortCode` dans le message partagé. `useDeepLinkCapture` (`_layout.tsx`)
+- **Le lien suffit, aucun code — nulle part.** `host.shareMessage` (i18n) ne met
+  plus le `shortCode` dans le message ; l'écran QR/hôte (`session/host.tsx`) ne
+  l'affiche plus non plus (`host.linkHint`). `useDeepLinkCapture` (`_layout.tsx`)
   mémorise le token quel que soit l'état d'auth (avant : conditionné à
   `!isAuthenticated` → perdu sur le web quand `Linking.useURL()` se résolvait
   après la connexion invité, d'où retour à la saisie manuelle). `JoinScreen`
-  efface le token en attente à son montage (pas de boucle). Le code reste
-  affiché sous le QR (`session/host.tsx`) pour la saisie manuelle web en secours.
+  efface le token en attente à son montage (pas de boucle).
+- **Saisie manuelle web** (`scan.tsx`, écran « Rejoindre ») = **coller le lien**
+  reçu : `extractJoinToken` → `joinByToken`, repli `joinByCode` si ce n'est pas
+  une URL/token. Erreurs affichées en inline (`Alert` ne s'affiche pas sur le web).
+- **`Alert.alert` est inerte sur RN Web** → utiliser `components/ui/confirm-dialog.tsx`
+  (`ConfirmDialog`, basé sur `Modal`) pour toute confirmation à 2 boutons visible
+  côté web. Fait pour « Quitter/Terminer » et « l'autre personne a quitté »
+  (`conversation/[id].tsx`).
 - **iOS Universal Links** : pas fait (besoin d'un Team ID Apple / compte
   Developer). La page de rebond couvre iOS en attendant (tap Safari → scheme).
 

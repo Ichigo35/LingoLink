@@ -26,6 +26,7 @@ export default function ScanScreen() {
   const isWeb = Platform.OS === 'web';
   const [mode, setMode] = useState<'scan' | 'code'>(isWeb ? 'code' : 'scan');
   const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lockRef = useRef(false);
 
@@ -39,7 +40,8 @@ export default function ScanScreen() {
       router.replace(`/conversation/${session.id}`);
     } catch (e) {
       const msg = e instanceof ApiRequestError ? e.message : t('scan.cannotJoin');
-      Alert.alert(t('scan.connectionFailed'), msg);
+      setCodeError(msg);
+      if (Platform.OS !== 'web') Alert.alert(t('scan.connectionFailed'), msg);
       lockRef.current = false;
     } finally {
       setBusy(false);
@@ -54,8 +56,14 @@ export default function ScanScreen() {
 
   function submitCode() {
     const trimmed = code.trim();
+    setCodeError(null);
+    const token = extractJoinToken(trimmed);
+    if (token) {
+      join(() => conversationsService.joinByToken(token));
+      return;
+    }
     if (trimmed.length < 6) {
-      Alert.alert(t('scan.invalidCode'), t('scan.invalidCodeText'));
+      setCodeError(t('scan.invalidCodeText'));
       return;
     }
     join(() => conversationsService.joinByCode(trimmed));
@@ -68,16 +76,22 @@ export default function ScanScreen() {
         <ThemedText themeColor="textSecondary">{t('scan.enterCodeSub')}</ThemedText>
         <TextInput
           value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
+          onChangeText={(v) => {
+            setCode(v);
+            if (codeError) setCodeError(null);
+          }}
+          autoCapitalize="none"
           autoCorrect={false}
-          placeholder="7F29-KP42"
+          placeholder={t('scan.codePlaceholder')}
           placeholderTextColor={theme.textSecondary}
           style={[
             styles.input,
             { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border },
           ]}
         />
+        {codeError ? (
+          <ThemedText style={[styles.error, { color: theme.danger }]}>{codeError}</ThemedText>
+        ) : null}
         <Button label={t('scan.join')} onPress={submitCode} loading={busy} style={styles.cta} />
         {!isWeb ? (
           <Button label={t('scan.scanInstead')} variant="ghost" onPress={() => setMode('scan')} />
@@ -137,9 +151,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
-    fontSize: 20,
-    letterSpacing: 2,
+    fontSize: 17,
     marginTop: Spacing.three,
   },
+  error: { marginTop: Spacing.two, fontSize: 14 },
   cta: { marginTop: Spacing.four },
 });

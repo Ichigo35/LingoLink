@@ -147,12 +147,9 @@ export default function HostSessionScreen() {
         )}
       </View>
 
-      <View style={styles.codeRow}>
-        <ThemedText themeColor="textSecondary" style={styles.codeLabel}>
-          {t('host.codeLabel')}
-        </ThemedText>
-        <ThemedText style={styles.code}>{session.shortCode}</ThemedText>
-      </View>
+      <ThemedText themeColor="textSecondary" style={styles.linkHint}>
+        {t('host.linkHint')}
+      </ThemedText>
 
       <ThemedText
         style={[
@@ -207,9 +204,7 @@ const styles = StyleSheet.create({
     minHeight: 260,
     minWidth: 260,
   },
-  codeRow: { alignItems: 'center', marginTop: Spacing.four, gap: Spacing.one },
-  codeLabel: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 },
-  code: { fontSize: 30, fontWeight: '700', letterSpacing: 2 },
+  linkHint: { textAlign: 'center', marginTop: Spacing.four, fontSize: 14 },
   countdown: { textAlign: 'center', marginTop: Spacing.two, fontSize: 15 },
   status: {
     flexDirection: 'row',

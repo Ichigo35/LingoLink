@@ -1,18 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatLanguage, isLanguageCode, type LanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAudioCapture } from '@/features/conversation/use-audio-capture';
@@ -41,9 +35,11 @@ export default function ConversationScreen() {
   const micBusyRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   /** true dès que l'utilisateur local déclenche lui-même la sortie. */
-  const leavingRef = useRef(false);
-  /** Empêche d'ouvrir deux fois l'alerte « l'autre a quitté ». */
-  const peerLeftShownRef = useRef(false);
+  const [leaving, setLeaving] = useState(false);
+  /** Confirmation « Quitter / Terminer » ouverte. */
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  /** L'utilisateur a choisi de rester après le départ de l'autre. */
+  const [peerLeftDismissed, setPeerLeftDismissed] = useState(false);
 
   const isCreator = !!session && user?.id === session.creatorId;
   const myLang = session ? (isCreator ? session.creatorLanguage : session.participantLanguage) : null;
@@ -124,7 +120,7 @@ export default function ConversationScreen() {
   useEffect(() => () => void captureRef.current.cancel(), []);
 
   async function leave() {
-    leavingRef.current = true;
+    setLeaving(true);
     try {
       if (isCreator) await conversationsService.endSession(id!);
       else await conversationsService.leaveSession(id!);
@@ -134,27 +130,14 @@ export default function ConversationScreen() {
     router.replace('/');
   }
 
-  // L'autre personne a quitté / terminé : on prévient et on invite à sortir.
+  // L'autre personne a quitté / terminé sans qu'on l'ait fait soi-même :
+  // vibration d'alerte (le dialogue « rester / quitter » est rendu plus bas).
+  const peerLeft = ended && !leaving;
   useEffect(() => {
-    if (!ended || leavingRef.current || peerLeftShownRef.current) return;
-    peerLeftShownRef.current = true;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    Alert.alert(t('conv.peerLeftTitle'), t('conv.peerLeftBody'), [
-      { text: t('conv.peerLeftStay'), style: 'cancel' },
-      { text: t('conv.leave'), style: 'destructive', onPress: () => router.replace('/') },
-    ]);
-  }, [ended, router, t]);
-
-  function confirmLeave() {
-    Alert.alert(
-      isCreator ? t('conv.endTitle') : t('conv.leaveTitle'),
-      isCreator ? t('conv.endBody') : t('conv.leaveBody'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: isCreator ? t('conv.end') : t('conv.leave'), style: 'destructive', onPress: leave },
-      ],
-    );
-  }
+    if (peerLeft) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+  }, [peerLeft]);
 
   if (loading && !session) {
     return (
@@ -208,12 +191,37 @@ export default function ConversationScreen() {
             {connected ? t('conv.direct') : t('conv.offline')}
           </ThemedText>
         </View>
-        <Pressable onPress={confirmLeave} hitSlop={10}>
+        <Pressable onPress={() => setLeaveOpen(true)} hitSlop={10}>
           <ThemedText style={[styles.leave, { color: theme.danger }]}>
             {isCreator ? t('conv.end') : t('conv.leave')}
           </ThemedText>
         </Pressable>
       </View>
+
+      <ConfirmDialog
+        visible={leaveOpen}
+        title={isCreator ? t('conv.endTitle') : t('conv.leaveTitle')}
+        message={isCreator ? t('conv.endBody') : t('conv.leaveBody')}
+        confirmLabel={isCreator ? t('conv.end') : t('conv.leave')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          setLeaveOpen(false);
+          void leave();
+        }}
+        onCancel={() => setLeaveOpen(false)}
+      />
+
+      <ConfirmDialog
+        visible={peerLeft && !peerLeftDismissed}
+        title={t('conv.peerLeftTitle')}
+        message={t('conv.peerLeftBody')}
+        confirmLabel={t('conv.leave')}
+        cancelLabel={t('conv.peerLeftStay')}
+        destructive
+        onConfirm={() => router.replace('/')}
+        onCancel={() => setPeerLeftDismissed(true)}
+      />
 
       <ScrollView
         ref={scrollRef}
