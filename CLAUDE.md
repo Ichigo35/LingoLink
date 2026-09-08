@@ -166,7 +166,7 @@ Idempotent. Test local : `npx wrangler dev --test-scheduled` puis
 2. Jamais afficher/committer une clé. Jamais désactiver RLS "pour dépanner".
 3. Ne pas simuler une fonctionnalité comme terminée si elle ne marche pas.
 4. Vérifier la doc réelle d'une API externe avant de l'intégrer (pas d'invention).
-5. `wrangler deploy` est bloqué pour l'agent → demander à l'utilisateur.
+5. `wrangler deploy` : l'agent peut le lancer directement (autorisé 2026-09-08).
 
 ## Commandes
 
