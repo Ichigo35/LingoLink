@@ -52,7 +52,11 @@ Suite = itérations / corrections / pistes libres (voir bas de fichier).
 - **Signature release** : plugin `plugins/withAndroidReleaseSigning.js` (réinjecté
   au prebuild). Si `credentials/keystore.properties` existe → APK signé avec le
   keystore de prod (`credentials/lingolink-release.jks`, alias `lingolink`,
-  SHA-256 `55:A8:0A:07:D4:FE:E3:1F:00:E4:F4:78:84:E5:E4:A8:DB:06:0A:DB:D9:84:B7:4E:21:CD:8B:F3:E6:78:A6:7C`).
+  valide jusqu'en 2054).
+  SHA-1 `43:83:02:96:B7:01:70:CC:FA:F8:8A:00:02:92:01:CB:8C:DA:8E:8B` ·
+  SHA-256 `55:A8:0A:07:D4:FE:E3:1F:00:E4:F4:78:84:E5:E4:A8:DB:06:0A:DB:D9:84:B7:4E:21:CD:8B:F3:E6:78:A6:7C`
+  (à enregistrer côté Google Cloud / Firebase seulement si un jour on passe au
+  Google Sign-In natif ; le flux OAuth navigateur actuel n'en a pas besoin).
   Sinon → clé debug (test OK). `credentials/` gitignored — **à sauvegarder hors
   repo** (perte = plus de MAJ possible sur le store). Modèle :
   `credentials/keystore.properties.example`.
