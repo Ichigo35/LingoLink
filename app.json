@@ -31,7 +31,10 @@
               "pathPrefix": "/join"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -75,7 +78,8 @@
           "locationWhenInUsePermission": "Lingo Link utilise votre position approximative uniquement quand vous choisissez d'être visible pour les personnes à proximité."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

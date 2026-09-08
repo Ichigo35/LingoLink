@@ -286,8 +286,12 @@ export default function ConversationScreen() {
 function MessageBubble({ message, mine }: { message: ConversationMessage; mine: boolean }) {
   const theme = useTheme();
   const t = useT();
-  const processing = message.status === 'processing';
   const failed = message.status === 'failed';
+  // "En écoute" tant qu'aucun mot n'est encore transcrit (statuts processing OU
+  // partial sans texte) — évite un flash "…" entre le début d'envoi et le 1ᵉʳ mot.
+  const awaitingFirstWord =
+    (message.status === 'processing' || message.status === 'partial') &&
+    !message.originalTranscript;
   const src = isLanguageCode(message.sourceLanguage)
     ? formatLanguage(message.sourceLanguage)
     : message.sourceLanguage;
@@ -311,7 +315,7 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
           <ThemedText style={{ color: mine ? theme.tintText : theme.danger }}>
             {message.error || t('conv.translationFailed')}
           </ThemedText>
-        ) : processing && !message.originalTranscript ? (
+        ) : awaitingFirstWord ? (
           <View style={styles.micRow}>
             <ActivityIndicator size="small" color={mine ? theme.tintText : theme.text} />
             <ThemedText style={{ color: mine ? theme.tintText : theme.textSecondary }}>

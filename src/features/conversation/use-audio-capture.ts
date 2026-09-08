@@ -29,12 +29,18 @@ export type MicPermission = 'unknown' | 'granted' | 'denied';
 
 /** Segments trop courts = bruit / appui accidentel. */
 const MIN_SEGMENT_MS = 600;
+/**
+ * Réglages VAD calibrés pour un rendu "live" : on coupe une phrase tôt pour
+ * l'envoyer en traduction sans attendre. Compromis assumé — plus les coupures
+ * sont fréquentes, plus on consomme de requêtes Gemini (quota gratuit limité) :
+ * remonter MAX_SEGMENT_MS vers 8000 si les erreurs `ai_quota` deviennent fréquentes.
+ */
 /** Pas de coupure avant d'avoir au moins ça de parole dans le segment. */
-const MIN_SPEECH_MS = 1100;
+const MIN_SPEECH_MS = 800;
 /** Silence (sous le seuil) à tenir pour déclencher une coupure. */
-const SILENCE_HOLD_MS = 850;
+const SILENCE_HOLD_MS = 650;
 /** Coupure forcée d'un segment qui n'en finit pas (parole continue). */
-const MAX_SEGMENT_MS = 12_000;
+const MAX_SEGMENT_MS = 6_000;
 /** Seuil de niveau (dBFS) : au-dessus = parole, en dessous = silence. */
 const SPEECH_DB = -40;
 const POLL_MS = 140;

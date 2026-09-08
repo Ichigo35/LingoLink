@@ -5,10 +5,28 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-**État au 2026-09-08 : MVP complet + 5 itérations de retours terrain.** Backend
-déployé (Worker `90e9aa76`, inchangé depuis itér. 3), **version web redéployée**
-(`lingolink-web.pages.dev`), APK `build-output/LingoLink.apk` à jour (itér. 5),
-app iOS sur simulateur.
+**État au 2026-09-08 : MVP complet + 6 itérations de retours terrain.** Backend
+déployé (`lingolink-web.pages.dev` pour le web), APK `build-output/LingoLink.apk`
+à jour, app iOS sur simulateur.
+
+**Itération 2026-09-08 (6) — plus de langues + UI multilingue + direct plus réactif :**
+13. **Langues de conversation** : ajout `ja` (日本語), `ko` (한국어), `hi` (हिन्दी).
+   `src/config/languages.ts` + `server/src/languages.ts` + `LANGUAGE_NAMES`
+   (`server/src/ai.ts`). Pas de migration (colonnes `text`, aucune contrainte CHECK).
+14. **UI dans la langue du téléphone** : `translations.ts` a désormais 8 blocs
+   (`fr, en, lo, th, zh, ja, ko, hi` — mêmes clés, tsc l'impose). Nouveau
+   `src/i18n/device-locale.ts` (`resolveInitialUiLanguage()` via `expo-localization`
+   `getLocales()`). `settings-store` : `UiLanguage = LanguageCode`, flag
+   `uiLanguageExplicit` ; tant qu'il est `false`, l'UI suit la locale de
+   l'appareil (repli `en`), sinon le choix Réglages prime. Repli d'exécution
+   i18n : `lang → en → fr → clé`. Sélecteur Réglages généré depuis `UI_LANGUAGES`.
+   ⚠️ Bloc `lo` traduit à la machine — à faire relire par un locuteur natif.
+15. **Direct plus réactif** (pas de Gemini Live — facturation off, choix
+   utilisateur) : VAD `use-audio-capture.ts` `MAX_SEGMENT_MS` 12000→6000,
+   `SILENCE_HOLD_MS` 850→650, `MIN_SPEECH_MS` 1100→800 → phrases envoyées ≤ 6 s.
+   Throttle broadcast `message_update` `messages.ts` 120→80 ms. `MessageBubble` :
+   état « en écoute » explicite sur `processing`|`partial` sans transcript.
+Backend à redéployer (langues serveur + throttle). Web + APK à régénérer.
 **La liste "Reste à faire" initiale est terminée**
 (2026-09-08) : i18n fr/en de tous les écrans, purge de rétention (cron),
 rate limiting du proxy Gemini, logo/icône custom, durcissement wrangler
@@ -203,18 +221,30 @@ credentials/       keystore release (gitignored, sauf keystore.properties.exampl
 
 ## Langues MVP
 
-`lo, fr, en, th, zh` — UNIQUEMENT dans `src/config/languages.ts` (app) et
-`server/src/languages.ts` (miroir). Jamais en dur ailleurs.
+Langues de **conversation** : `lo, fr, en, th, zh, ja, ko, hi` — UNIQUEMENT dans
+`src/config/languages.ts` (app) et `server/src/languages.ts` (miroir) +
+`LANGUAGE_NAMES` dans `server/src/ai.ts`. Jamais en dur ailleurs.
 
 ## i18n de l'interface (§18)
 
-Langues d'UI : **fr (référence) + en**. Tout passe par `src/i18n/` :
-`translations.ts` (objet `TRANSLATIONS.{fr,en}`, `TranslationKey` dérive de `fr`
-donc les 2 blocs doivent avoir exactement les mêmes clés) + `useT()` (hook) /
-`translate()` (hors React, ex. `error-boundary`). Interpolation :
-`t('host.expiresIn', { time })` remplace `{time}` dans la chaîne.
-**Jamais de texte visible en dur dans un écran** — ajouter une clé fr + en.
-Choix de langue : écran Réglages (`uiLanguage` dans `settings-store`, persisté).
+Langues d'UI = `UI_LANGUAGES` (`src/config/languages.ts`) : **fr (référence), en,
+lo, th, zh, ja, ko, hi**. Tout passe par `src/i18n/` : `translations.ts` (objet
+`TRANSLATIONS` à 8 blocs, `TranslationKey` dérive de `fr` ; l'accès typé
+`TRANSLATIONS[lang][key]` dans `index.ts` force tsc à exiger EXACTEMENT les mêmes
+clés dans chaque bloc) + `useT()` (hook) / `translate()` (hors React). Repli
+d'exécution : `lang → en → fr → clé brute`. Interpolation :
+`t('host.expiresIn', { time })` remplace `{time}`.
+**Jamais de texte visible en dur dans un écran** — ajouter la clé dans les 8 blocs.
+Bloc `lo` = traduction machine, à faire relire par un locuteur natif.
+
+**Détection de la locale de l'appareil** : `src/i18n/device-locale.ts`
+(`resolveInitialUiLanguage()` = 1ʳᵉ locale `expo-localization` `getLocales()`
+présente dans `UI_LANGUAGES`, sinon `en`). `settings-store` : `uiLanguage` +
+flag `uiLanguageExplicit` (persistés). Au rehydrate, si `!uiLanguageExplicit`,
+`uiLanguage` est réévalué depuis la locale ; `setUiLanguage` (écran Réglages)
+passe le flag à `true` et fige le choix. Le sélecteur de Réglages est généré
+depuis `UI_LANGUAGES` (drapeau + endonyme). Web : `getLocales()` lit
+`navigator.language`.
 Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
 
 ## Rate limiting (proxy Gemini)
@@ -234,10 +264,13 @@ automatique**. Bouton **appui unique** (start/stop) : 1er tap → `capture.start
 2e tap → `capture.stop()` (`conversation/[id].tsx` `toggleRecord`, état local
 `recording`, `micBusyRef` anti-double-tap, `capture.cancel()` au démontage).
 Pendant l'enregistrement, un poll (~140 ms) lit `recorder.getStatus().metering` ;
-après ≥1,1 s de parole suivie de ~850 ms sous `-40 dBFS`, le segment est coupé →
+après ≥0,8 s de parole suivie de ~650 ms sous `-40 dBFS`, le segment est coupé →
 `onSegment()` (envoi + traduction immédiate) → nouveau segment. Coupe forcée à
-12 s. `stop()` renvoie le dernier segment. `sendSegment()` partagé, compteur
-`inFlight` (plusieurs envois en parallèle).
+**6 s** (itér. 6 : plus court = rendu « live », au prix de plus de requêtes
+Gemini → remonter vers 8000 si `ai_quota` fréquent). `stop()` renvoie le dernier
+segment. `sendSegment()` partagé, compteur `inFlight` (plusieurs envois en
+parallèle). Côté serveur, `messages.ts` rediffuse les instantanés partiels au
+pair toutes les ~80 ms pendant que Gemini streame.
 
 **Upload audio — spécifique plateforme** : `src/services/conversations/read-audio.ts`
 (natif : `expo-file-system` lit le fichier local, mime déduit de l'extension) vs

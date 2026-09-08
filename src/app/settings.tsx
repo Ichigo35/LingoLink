@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { LANGUAGES, UI_LANGUAGES } from '@/config/languages';
 import { useT, type TranslationKey } from '@/i18n';
 import {
   useSettingsStore,
@@ -19,10 +20,10 @@ const THEME_OPTIONS: { value: ThemePreference; labelKey: TranslationKey }[] = [
   { value: 'dark', labelKey: 'settings.theme.dark' },
 ];
 
-const UI_LANGUAGE_OPTIONS: { value: UiLanguage; label: string }[] = [
-  { value: 'fr', label: '🇫🇷 Français' },
-  { value: 'en', label: '🇬🇧 English' },
-];
+const UI_LANGUAGE_OPTIONS: { value: UiLanguage; label: string }[] = UI_LANGUAGES.map((code) => ({
+  value: code,
+  label: `${LANGUAGES[code].flag} ${LANGUAGES[code].endonym}`,
+}));
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -49,14 +50,14 @@ export default function SettingsScreen() {
 
       <View style={styles.group}>
         <ThemedText style={styles.groupTitle}>{t('settings.uiLanguage')}</ThemedText>
-        <View style={styles.row}>
+        <View style={styles.langGrid}>
           {UI_LANGUAGE_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
               label={opt.label}
               variant={uiLanguage === opt.value ? 'primary' : 'secondary'}
               onPress={() => setUiLanguage(opt.value)}
-              style={styles.flex}
+              style={styles.langButton}
             />
           ))}
         </View>
@@ -100,6 +101,15 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  langGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  langButton: {
+    flexGrow: 1,
+    flexBasis: '30%',
   },
   note: {
     fontSize: 13,

@@ -20,7 +20,10 @@ export function useT() {
   const lang = useSettingsStore((s) => s.uiLanguage);
   return useCallback(
     (key: TranslationKey, params?: Params): string =>
-      interpolate(TRANSLATIONS[lang][key] ?? TRANSLATIONS.fr[key] ?? key, params),
+      interpolate(
+        TRANSLATIONS[lang][key] ?? TRANSLATIONS.en[key] ?? TRANSLATIONS.fr[key] ?? key,
+        params,
+      ),
     [lang],
   );
 }
@@ -28,5 +31,8 @@ export function useT() {
 /** Version non-hook (hors composants). */
 export function translate(key: TranslationKey, params?: Params): string {
   const lang = useSettingsStore.getState().uiLanguage;
-  return interpolate(TRANSLATIONS[lang][key] ?? TRANSLATIONS.fr[key] ?? key, params);
+  return interpolate(
+    TRANSLATIONS[lang][key] ?? TRANSLATIONS.en[key] ?? TRANSLATIONS.fr[key] ?? key,
+    params,
+  );
 }

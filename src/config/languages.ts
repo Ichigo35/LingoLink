@@ -5,7 +5,7 @@
  * référencer une langue en dur ailleurs que via ce module.
  */
 
-export type LanguageCode = 'lo' | 'fr' | 'en' | 'th' | 'zh';
+export type LanguageCode = 'lo' | 'fr' | 'en' | 'th' | 'zh' | 'ja' | 'ko' | 'hi';
 
 export interface LanguageDefinition {
   /** Code ISO 639-1 (utilisé par la base de données et l'API IA). */
@@ -26,12 +26,15 @@ export const LANGUAGES: Record<LanguageCode, LanguageDefinition> = {
   en: { code: 'en', label: 'Anglais', endonym: 'English', flag: '🇬🇧', direction: 'ltr' },
   th: { code: 'th', label: 'Thaï', endonym: 'ไทย', flag: '🇹🇭', direction: 'ltr' },
   zh: { code: 'zh', label: 'Chinois', endonym: '中文', flag: '🇨🇳', direction: 'ltr' },
+  ja: { code: 'ja', label: 'Japonais', endonym: '日本語', flag: '🇯🇵', direction: 'ltr' },
+  ko: { code: 'ko', label: 'Coréen', endonym: '한국어', flag: '🇰🇷', direction: 'ltr' },
+  hi: { code: 'hi', label: 'Hindi', endonym: 'हिन्दी', flag: '🇮🇳', direction: 'ltr' },
 };
 
 export const LANGUAGE_LIST: LanguageDefinition[] = Object.values(LANGUAGES);
 
-/** Langues proposées comme langue d'interface (sous-ensemble avec traduction UI). */
-export const UI_LANGUAGES: LanguageCode[] = ['fr', 'en'];
+/** Langues proposées comme langue d'interface (celles avec un bloc de traduction UI). */
+export const UI_LANGUAGES: LanguageCode[] = ['fr', 'en', 'lo', 'th', 'zh', 'ja', 'ko', 'hi'];
 
 export const DEFAULT_MY_LANGUAGE: LanguageCode = 'fr';
 export const DEFAULT_OTHER_LANGUAGE: LanguageCode = 'en';

@@ -139,7 +139,7 @@ export function registerMessageRoutes(app: Hono<AppEnv>) {
             status: 'partial',
           };
           const t = Date.now();
-          if (t - lastBroadcast > 120) {
+          if (t - lastBroadcast > 80) {
             lastBroadcast = t;
             void notifyRoom(c.env, id, { type: 'message_update', message: toDto(row) });
           }
