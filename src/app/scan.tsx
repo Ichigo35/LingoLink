@@ -6,6 +6,7 @@ import { Alert, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { UiLanguageBar } from '@/components/ui/ui-language-bar';
 import { extractJoinToken } from '@/config/session';
 import { Radius, Spacing } from '@/constants/theme';
 import { useConversationGuard } from '@/features/conversation/conversation-guard';
@@ -102,6 +103,11 @@ export default function ScanScreen() {
         {!isWeb ? (
           <Button label={t('scan.scanInstead')} variant="ghost" onPress={() => setMode('scan')} />
         ) : null}
+        {isWeb ? (
+          <View style={styles.langBar}>
+            <UiLanguageBar />
+          </View>
+        ) : null}
       </Screen>
     );
   }
@@ -162,4 +168,5 @@ const styles = StyleSheet.create({
   },
   error: { marginTop: Spacing.two, fontSize: 14 },
   cta: { marginTop: Spacing.four },
+  langBar: { marginTop: Spacing.six },
 });

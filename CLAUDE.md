@@ -5,12 +5,13 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-08) — MVP complet + 8 itérations de retours terrain
+## État (2026-09-10) — MVP complet + 9 itérations de retours terrain
 
-- **Worker** `lingolink-api` déployé, version **`d02ac2e8`** (inchangé depuis
-  itér. 7). URL `https://lingolink-api.ichigo35.workers.dev`.
-- **Web** déployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`.
-- **APK** `build-output/LingoLink.apk` à jour (itér. 8). App iOS sur simulateur.
+- **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
+  rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
+- **Web** déployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
+  (itér. 9).
+- **APK** `build-output/LingoLink.apk` à jour (itér. 9). App iOS sur simulateur.
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -19,6 +20,27 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 9** — **langue de l'invité qui rejoint via un lien** (retour terrain :
+  téléphone lao → page de connexion en français, l'invité ne savait pas où
+  cliquer, puis bloqué sur la page de rebond). (a) **page `/join/:token` du Worker
+  traduite** dans les 8 langues d'UI via l'en-tête `Accept-Language`
+  (`server/src/join.ts`, `T`/`pickLang`), `<html lang>` + `Content-Language`
+  corrects, 2e ligne d'aide « le chargement peut prendre quelques secondes »,
+  auto-redirection scheme repoussée à 1200 ms et conditionnée à
+  `visibilityState`. (b) **le bouton « Continuer dans le navigateur » passe la
+  langue au web** : `?hl=<code>` ajouté à l'URL web → `resolveInitialUiLanguage()`
+  lit `?hl=`/`?lang=` en priorité sur le web (`src/i18n/device-locale.ts`
+  `uiLanguageFromUrl()`) — rattrape les navigateurs mobiles dont
+  `navigator.language` ne reflète pas la langue du téléphone (navigateur intégré
+  WhatsApp, etc.). (c) **sélecteur de langue d'UI sur les écrans d'entrée** :
+  `src/components/ui/ui-language-bar.tsx` (`UiLanguageBar`, pastilles
+  drapeau+endonyme depuis `UI_LANGUAGES`, écrit `setUiLanguage`), ajouté à
+  `welcome` (toujours) et `scan` (web) — les Réglages sont inaccessibles en mode
+  invité web. (d) **écran `welcome` sensible à l'invitation** : quand un token est
+  en attente (`pendingJoinStore`), bannière « Vous avez été invité… » + le bouton
+  invité devient « Rejoindre la conversation » (`welcome.invited` /
+  `welcome.invitedCta` / `welcome.signInFailed` ajoutés aux 8 blocs). Worker
+  `6b59d71c`. Pas de migration.
 - **Itér. 8** — (a) **retrait de la traduction phrase-par-phrase VAD** : pas assez
   fluide/précise → retour au « tap Parler → parler → tap Terminer → 1 traduction »
   (`use-audio-capture.ts` simplifié). (b) **titres rognés en haut** : `themed-text`
@@ -207,6 +229,16 @@ depuis `UI_LANGUAGES` (drapeau + endonyme). Web : `getLocales()` lit
 `navigator.language`.
 Les titres de la nav sont dans `_layout.tsx` via `useT()` (clés `nav.*`).
 
+**Priorité `?hl=` sur le web (itér. 9)** : `uiLanguageFromUrl()` lit
+`?hl=<code>` (ou `?lang=`) de l'URL et l'emporte sur `getLocales()`. La page de
+rebond `/join` du Worker le renseigne avec la langue détectée côté serveur
+(`Accept-Language`) → l'invité qui arrive par lien voit le web dans la bonne
+langue même si `navigator.language` du navigateur mobile est faux. Correctif de
+secours toujours visible : `UiLanguageBar` (`src/components/ui/ui-language-bar.tsx`)
+sur `welcome` et `scan` (web) — pastilles drapeau+endonyme, écrit `setUiLanguage`
+(donc `uiLanguageExplicit=true`). `welcome` affiche en plus une bannière
+« invité » quand `pendingJoinStore` a un token.
+
 ## Rate limiting (proxy Gemini)
 
 `server/src/rate-limit.ts` (`enforceRateLimit`, fail-open) + bindings
@@ -271,6 +303,9 @@ l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
 - **`server/src/join.ts`** :
   - `GET /join/:token` → page HTML légère qui rebondit vers
     `lingolink://join/<token>` (bouton de secours). Sert aussi de cible App Links.
+    **Traduite (8 langues d'UI) via `Accept-Language`** (`T` + `pickLang`), le
+    bouton navigateur pointe vers `<WEB_APP_URL>/join/<token>?hl=<code>`.
+    Auto-redirection scheme après 1200 ms, seulement si l'onglet est visible.
   - `GET /.well-known/assetlinks.json` → vérif **App Links Android** (package
     `com.ichigo35.lingolink` + SHA-256 du keystore release). Android ouvre alors
     l'app directement, sans page intermédiaire.
@@ -283,8 +318,15 @@ l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
   l'affiche plus non plus (`host.linkHint`). `useDeepLinkCapture` (`_layout.tsx`)
   mémorise le token quel que soit l'état d'auth (avant : conditionné à
   `!isAuthenticated` → perdu sur le web quand `Linking.useURL()` se résolvait
-  après la connexion invité, d'où retour à la saisie manuelle). `JoinScreen`
-  efface le token en attente à son montage (pas de boucle).
+  après la connexion invité, d'où retour à la saisie manuelle).
+- **`JoinScreen` n'efface PLUS le token en attente à son montage** (itér. 9) :
+  sur le web, l'invité non connecté qui ouvre `/join/<token>` est renvoyé vers
+  `/welcome`, se connecte en invité, et `useAuthRouting` doit pouvoir le
+  ramener sur `/join/<token>` — le token doit survivre à cet aller-retour.
+  Il est effacé uniquement : jointure réussie, invitation définitivement
+  invalide (`ApiRequestError`), ou sortie via `leave()` (bouton Annuler / Accueil
+  — sinon `useAuthRouting` renvoie en boucle sur `/join`). La boucle authed est
+  déjà bloquée par `current !== 'join'` dans `useAuthRouting`.
 - **Saisie manuelle web** (`scan.tsx`, écran « Rejoindre ») = **coller le lien**
   reçu : `extractJoinToken` → `joinByToken`, repli `joinByCode` si ce n'est pas
   une URL/token. Erreurs affichées en inline (`Alert` ne s'affiche pas sur le web).

@@ -12,6 +12,11 @@ import type { AppEnv } from './context';
  *    ouvre directement l'app,
  *  - ailleurs, une page légère rebondit vers `lingolink://join/<token>` avec un
  *    bouton de secours.
+ *
+ * La page est traduite dans les 8 langues d'UI de l'app, à partir de l'en-tête
+ * `Accept-Language` du navigateur. La langue retenue est aussi passée au web
+ * (`?hl=<code>`) pour que la version web s'affiche dans la même langue — plus
+ * fiable que `navigator.language` sur certains navigateurs mobiles.
  */
 
 const ANDROID_PACKAGE = 'com.ichigo35.lingolink';
@@ -21,22 +26,127 @@ const ANDROID_SHA256 =
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{10,64}$/;
 
+/** Langues d'UI de l'app (miroir de `UI_LANGUAGES` côté client). */
+const UI_LANGS = ['fr', 'en', 'lo', 'th', 'zh', 'ja', 'ko', 'hi'] as const;
+type UiLang = (typeof UI_LANGS)[number];
+
+interface Strings {
+  htmlLang: string;
+  join: string;
+  openApp: string;
+  openWeb: string;
+  hintNoApp: string;
+  hintSlow: string;
+}
+
+const T: Record<UiLang, Strings> = {
+  fr: {
+    htmlLang: 'fr',
+    join: 'Rejoindre la conversation',
+    openApp: "Ouvrir dans l'application",
+    openWeb: 'Continuer dans le navigateur',
+    hintNoApp: "L'app n'est pas installée ? Continuez dans le navigateur.",
+    hintSlow: 'Le chargement peut prendre quelques secondes selon la connexion.',
+  },
+  en: {
+    htmlLang: 'en',
+    join: 'Join the conversation',
+    openApp: 'Open in the app',
+    openWeb: 'Continue in the browser',
+    hintNoApp: "App not installed? Continue in the browser.",
+    hintSlow: 'Loading can take a few seconds depending on your connection.',
+  },
+  lo: {
+    htmlLang: 'lo',
+    join: 'ເຂົ້າຮ່ວມການສົນທະນາ',
+    openApp: 'ເປີດໃນແອັບ',
+    openWeb: 'ດຳເນີນຕໍ່ໃນຕົວທ່ອງເວັບ',
+    hintNoApp: 'ຍັງບໍ່ໄດ້ຕິດຕັ້ງແອັບບໍ? ດຳເນີນຕໍ່ໃນຕົວທ່ອງເວັບ.',
+    hintSlow: 'ການໂຫຼດອາດໃຊ້ເວລາສອງສາມວິນາທີ ຂຶ້ນກັບການເຊື່ອມຕໍ່.',
+  },
+  th: {
+    htmlLang: 'th',
+    join: 'เข้าร่วมการสนทนา',
+    openApp: 'เปิดในแอป',
+    openWeb: 'ดำเนินการต่อในเบราว์เซอร์',
+    hintNoApp: 'ยังไม่ได้ติดตั้งแอปใช่ไหม? ดำเนินการต่อในเบราว์เซอร์',
+    hintSlow: 'การโหลดอาจใช้เวลาสองสามวินาที ขึ้นอยู่กับการเชื่อมต่อ',
+  },
+  zh: {
+    htmlLang: 'zh',
+    join: '加入对话',
+    openApp: '在应用中打开',
+    openWeb: '在浏览器中继续',
+    hintNoApp: '未安装应用？请在浏览器中继续。',
+    hintSlow: '加载可能需要几秒钟，取决于你的网络连接。',
+  },
+  ja: {
+    htmlLang: 'ja',
+    join: '会話に参加',
+    openApp: 'アプリで開く',
+    openWeb: 'ブラウザで続ける',
+    hintNoApp: 'アプリが未インストールですか？ブラウザで続けてください。',
+    hintSlow: '通信状況により、読み込みに数秒かかることがあります。',
+  },
+  ko: {
+    htmlLang: 'ko',
+    join: '대화 참가',
+    openApp: '앱에서 열기',
+    openWeb: '브라우저에서 계속',
+    hintNoApp: '앱이 설치되지 않았나요? 브라우저에서 계속하세요.',
+    hintSlow: '연결 상태에 따라 로딩에 몇 초가 걸릴 수 있습니다.',
+  },
+  hi: {
+    htmlLang: 'hi',
+    join: 'बातचीत में शामिल हों',
+    openApp: 'ऐप में खोलें',
+    openWeb: 'ब्राउज़र में जारी रखें',
+    hintNoApp: 'ऐप इंस्टॉल नहीं है? ब्राउज़र में जारी रखें।',
+    hintSlow: 'कनेक्शन के आधार पर लोड होने में कुछ सेकंड लग सकते हैं।',
+  },
+};
+
+/** Choisit la meilleure langue d'UI à partir de l'en-tête `Accept-Language`. */
+function pickLang(header: string | null | undefined): UiLang {
+  if (!header) return 'en';
+  const wanted = header
+    .split(',')
+    .map((part) => {
+      const [tag, q] = part.trim().split(';q=');
+      return { code: tag.toLowerCase().split('-')[0], q: q ? Number(q) : 1 };
+    })
+    .filter((x) => x.code)
+    .sort((a, b) => b.q - a.q);
+  for (const { code } of wanted) {
+    if ((UI_LANGS as readonly string[]).includes(code)) return code as UiLang;
+  }
+  return 'en';
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-function bouncePage(scheme: string, webUrl: string | undefined, token: string): string {
+function bouncePage(
+  scheme: string,
+  webUrl: string | undefined,
+  token: string,
+  lang: UiLang,
+): string {
+  const s = T[lang];
   const deep = `${scheme}://join/${encodeURIComponent(token)}`;
-  const web = webUrl ? `${webUrl.replace(/\/$/, '')}/join/${encodeURIComponent(token)}` : null;
+  const web = webUrl
+    ? `${webUrl.replace(/\/$/, '')}/join/${encodeURIComponent(token)}?hl=${lang}`
+    : null;
   const webBtn = web
-    ? `<a class="btn ghost" href="${escapeHtml(web)}">Continuer dans le navigateur</a>`
+    ? `<a class="btn ghost" href="${escapeHtml(web)}">${escapeHtml(s.openWeb)}</a>`
     : '';
   return `<!doctype html>
-<html lang="fr">
+<html lang="${s.htmlLang}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Rejoindre une conversation Lingo Link</title>
+<title>Lingo Link</title>
 <style>
   :root { color-scheme: light dark; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
@@ -54,14 +164,18 @@ function bouncePage(scheme: string, webUrl: string | undefined, token: string): 
 <body>
   <div class="card">
     <h1>Lingo Link</h1>
-    <p>Rejoindre la conversation</p>
-    <a class="btn" href="${escapeHtml(deep)}">Ouvrir dans l'application</a>
+    <p>${escapeHtml(s.join)}</p>
+    <a class="btn" href="${escapeHtml(deep)}">${escapeHtml(s.openApp)}</a>
     ${webBtn}
-    <p class="hint">L'app n'est pas installée ? Continuez dans le navigateur.</p>
+    <p class="hint">${escapeHtml(s.hintNoApp)}<br />${escapeHtml(s.hintSlow)}</p>
   </div>
   <script>
-    // Tente l'app immédiatement (sans effet si elle n'est pas installée).
-    setTimeout(function () { window.location.href = ${JSON.stringify(deep)}; }, 200);
+    // Tente l'app une seule fois, après un court délai (laisse voir les boutons).
+    setTimeout(function () {
+      if (document.visibilityState === 'visible') {
+        window.location.href = ${JSON.stringify(deep)};
+      }
+    }, 1200);
   </script>
 </body>
 </html>`;
@@ -86,10 +200,13 @@ export function registerJoinRoutes(app: Hono<AppEnv>) {
   app.get('/join/:token', (c) => {
     const token = c.req.param('token');
     if (!token || !TOKEN_RE.test(token)) {
-      return c.text('Lien de conversation invalide.', 400);
+      return c.text('Lien de conversation invalide. / Invalid conversation link.', 400);
     }
-    return c.html(bouncePage(c.env.APP_SCHEME || 'lingolink', c.env.WEB_APP_URL, token), 200, {
-      'Cache-Control': 'no-store',
-    });
+    const lang = pickLang(c.req.header('accept-language'));
+    return c.html(
+      bouncePage(c.env.APP_SCHEME || 'lingolink', c.env.WEB_APP_URL, token, lang),
+      200,
+      { 'Cache-Control': 'no-store', 'Content-Language': T[lang].htmlLang },
+    );
   });
 }

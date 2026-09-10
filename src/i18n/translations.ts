@@ -53,6 +53,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': 'Parlez naturellement.\nComprenez-vous instantanément.',
     'welcome.google': 'Continuer avec Google',
     'welcome.guest': 'Continuer en invité',
+    'welcome.invited': 'Vous avez été invité à une conversation. Continuez pour la rejoindre.',
+    'welcome.invitedCta': 'Rejoindre la conversation',
+    'welcome.signInFailed': 'Connexion impossible',
     'welcome.note':
       'En invité, vous pouvez rejoindre et tester des conversations. Créez un compte plus tard pour garder vos contacts et votre historique.',
 
@@ -281,6 +284,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': 'Speak naturally.\nUnderstand each other instantly.',
     'welcome.google': 'Continue with Google',
     'welcome.guest': 'Continue as guest',
+    'welcome.invited': "You've been invited to a conversation. Continue to join it.",
+    'welcome.invitedCta': 'Join the conversation',
+    'welcome.signInFailed': 'Sign-in failed',
     'welcome.note':
       'As a guest you can join and try conversations. Create an account later to keep your contacts and history.',
 
@@ -509,6 +515,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': 'ເວົ້າໄດ້ຕາມທຳມະຊາດ.\nເຂົ້າໃຈກັນທັນທີ.',
     'welcome.google': 'ດຳເນີນຕໍ່ດ້ວຍ Google',
     'welcome.guest': 'ດຳເນີນຕໍ່ໃນຖານະແຂກ',
+    'welcome.invited': 'ທ່ານໄດ້ຮັບເຊີນເຂົ້າຮ່ວມການສົນທະນາ. ດຳເນີນຕໍ່ເພື່ອເຂົ້າຮ່ວມ.',
+    'welcome.invitedCta': 'ເຂົ້າຮ່ວມການສົນທະນາ',
+    'welcome.signInFailed': 'ເຂົ້າສູ່ລະບົບບໍ່ໄດ້',
     'welcome.note':
       'ໃນຖານະແຂກ ທ່ານສາມາດເຂົ້າຮ່ວມ ແລະ ທົດລອງການສົນທະນາໄດ້. ສ້າງບັນຊີພາຍຫຼັງເພື່ອຮັກສາລາຍຊື່ຕິດຕໍ່ ແລະ ປະຫວັດ.',
 
@@ -730,6 +739,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': 'พูดได้อย่างเป็นธรรมชาติ\nเข้าใจกันทันที',
     'welcome.google': 'ดำเนินการต่อด้วย Google',
     'welcome.guest': 'ดำเนินการต่อในฐานะผู้เยี่ยมชม',
+    'welcome.invited': 'คุณได้รับเชิญให้เข้าร่วมการสนทนา ดำเนินการต่อเพื่อเข้าร่วม',
+    'welcome.invitedCta': 'เข้าร่วมการสนทนา',
+    'welcome.signInFailed': 'เข้าสู่ระบบไม่สำเร็จ',
     'welcome.note':
       'ในฐานะผู้เยี่ยมชม คุณสามารถเข้าร่วมและทดลองการสนทนาได้ สร้างบัญชีภายหลังเพื่อเก็บรายชื่อติดต่อและประวัติ',
 
@@ -951,6 +963,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': '自然地说话。\n即时相互理解。',
     'welcome.google': '使用 Google 继续',
     'welcome.guest': '以访客身份继续',
+    'welcome.invited': '有人邀请你加入一场对话。继续以加入。',
+    'welcome.invitedCta': '加入对话',
+    'welcome.signInFailed': '登录失败',
     'welcome.note':
       '作为访客，你可以加入并试用对话。稍后创建账户以保留联系人和历史记录。',
 
@@ -1171,6 +1186,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': '自然に話しましょう。\nその場でお互いを理解。',
     'welcome.google': 'Googleで続ける',
     'welcome.guest': 'ゲストとして続ける',
+    'welcome.invited': '会話に招待されています。続けて参加してください。',
+    'welcome.invitedCta': '会話に参加',
+    'welcome.signInFailed': 'サインインに失敗しました',
     'welcome.note':
       'ゲストでは会話に参加してお試しできます。後でアカウントを作成すると連絡先と履歴を保持できます。',
 
@@ -1393,6 +1411,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': '자연스럽게 말하세요.\n즉시 서로를 이해합니다.',
     'welcome.google': 'Google로 계속',
     'welcome.guest': '게스트로 계속',
+    'welcome.invited': '대화에 초대되었습니다. 계속하여 참가하세요.',
+    'welcome.invitedCta': '대화 참가',
+    'welcome.signInFailed': '로그인 실패',
     'welcome.note':
       '게스트로 대화에 참여하고 사용해 볼 수 있습니다. 나중에 계정을 만들면 연락처와 기록을 유지할 수 있습니다.',
 
@@ -1614,6 +1635,9 @@ export const TRANSLATIONS = {
     'welcome.tagline': 'स्वाभाविक रूप से बोलें।\nतुरंत एक-दूसरे को समझें।',
     'welcome.google': 'Google से जारी रखें',
     'welcome.guest': 'अतिथि के रूप में जारी रखें',
+    'welcome.invited': 'आपको एक बातचीत में आमंत्रित किया गया है। शामिल होने के लिए जारी रखें।',
+    'welcome.invitedCta': 'बातचीत में शामिल हों',
+    'welcome.signInFailed': 'साइन-इन विफल',
     'welcome.note':
       'अतिथि के रूप में आप बातचीत में शामिल होकर आज़मा सकते हैं। अपने संपर्क और इतिहास रखने के लिए बाद में खाता बनाएं।',
 

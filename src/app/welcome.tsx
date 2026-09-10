@@ -4,14 +4,19 @@ import { Alert, Platform, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
-import { Spacing } from '@/constants/theme';
+import { UiLanguageBar } from '@/components/ui/ui-language-bar';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { authService } from '@/services/auth';
+import { usePendingJoinStore } from '@/stores/pending-join-store';
 
 export default function WelcomeScreen() {
   const t = useT();
+  const theme = useTheme();
   const [busy, setBusy] = useState<null | 'guest' | 'google'>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const invited = usePendingJoinStore((s) => s.token != null);
 
   useEffect(() => {
     // Google OAuth : natif uniquement (le flux web sur domaine séparé n'est pas
@@ -29,7 +34,7 @@ export default function WelcomeScreen() {
       if (kind === 'guest') await authService.signInAsGuest();
       else await authService.signInWithGoogle();
     } catch (e) {
-      Alert.alert('Connexion impossible', e instanceof Error ? e.message : 'Erreur inconnue');
+      Alert.alert(t('welcome.signInFailed'), e instanceof Error ? e.message : t('common.error'));
     } finally {
       setBusy(null);
     }
@@ -44,6 +49,16 @@ export default function WelcomeScreen() {
         </ThemedText>
       </View>
 
+      {invited ? (
+        <View
+          style={[
+            styles.invited,
+            { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+          ]}>
+          <ThemedText style={styles.invitedText}>{t('welcome.invited')}</ThemedText>
+        </View>
+      ) : null}
+
       <View style={styles.actions}>
         {googleEnabled ? (
           <Button
@@ -55,8 +70,8 @@ export default function WelcomeScreen() {
           />
         ) : null}
         <Button
-          label={t('welcome.guest')}
-          variant={googleEnabled ? 'secondary' : 'primary'}
+          label={invited ? t('welcome.invitedCta') : t('welcome.guest')}
+          variant={googleEnabled && !invited ? 'secondary' : 'primary'}
           onPress={() => run('guest')}
           loading={busy === 'guest'}
           disabled={busy !== null}
@@ -64,6 +79,10 @@ export default function WelcomeScreen() {
         <ThemedText themeColor="textSecondary" style={styles.note}>
           {t('welcome.note')}
         </ThemedText>
+      </View>
+
+      <View style={styles.langBar}>
+        <UiLanguageBar />
       </View>
     </Screen>
   );
@@ -85,6 +104,20 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     textAlign: 'center',
   },
+  invited: {
+    alignSelf: 'stretch',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    marginBottom: Spacing.four,
+  },
+  invitedText: {
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   actions: {
     gap: Spacing.three,
   },
@@ -93,5 +126,9 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     textAlign: 'center',
     marginTop: Spacing.one,
+  },
+  langBar: {
+    marginTop: Spacing.six,
+    alignSelf: 'stretch',
   },
 });

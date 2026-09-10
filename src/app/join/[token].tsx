@@ -40,7 +40,10 @@ export default function JoinScreen() {
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    clearPending();
+    // Ne PAS effacer le token en attente ici : sur le web, un invité non connecté
+    // qui ouvre `/join/<token>` est renvoyé vers `/welcome` puis doit revenir ici
+    // après connexion — le token doit survivre. On l'efface une fois la jointure
+    // réussie (ou définitivement impossible), plus bas.
     if (!token) return;
     let cancelled = false;
     conversationsService
@@ -57,6 +60,7 @@ export default function JoinScreen() {
               ? t('join.notExist')
               : t('join.cannotRead'),
           );
+          clearPending();
         }
       });
     return () => {
@@ -77,11 +81,18 @@ export default function JoinScreen() {
     guard(() => void runJoin());
   }
 
+  /** Quitter l'écran : on abandonne l'invitation en attente (sinon `useAuthRouting` y renvoie en boucle). */
+  function leave() {
+    clearPending();
+    router.replace('/');
+  }
+
   async function runJoin() {
     setJoining(true);
     setError(null);
     try {
       const session = await conversationsService.joinByToken(token);
+      clearPending();
       setSession(session);
       router.replace(`/conversation/${session.id}`);
     } catch (e) {
@@ -96,6 +107,7 @@ export default function JoinScreen() {
           : t('join.cannotJoin');
       setError(msg);
       setJoining(false);
+      if (e instanceof ApiRequestError) clearPending();
     }
   }
 
@@ -112,7 +124,7 @@ export default function JoinScreen() {
           <ThemedText themeColor="textSecondary" style={styles.center}>
             {shownError}
           </ThemedText>
-          <Button label={t('common.home')} onPress={() => router.replace('/')} style={styles.cta} />
+          <Button label={t('common.home')} onPress={leave} style={styles.cta} />
         </>
       ) : !preview ? (
         <ActivityIndicator color={theme.tint} style={{ marginTop: Spacing.four }} />
@@ -147,7 +159,7 @@ export default function JoinScreen() {
             disabled={expired || !preview.joinable}
             style={styles.cta}
           />
-          <Button label={t('common.cancel')} variant="ghost" onPress={() => router.replace('/')} />
+          <Button label={t('common.cancel')} variant="ghost" onPress={leave} />
         </>
       )}
     </Screen>
