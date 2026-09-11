@@ -165,6 +165,11 @@ export default function ContactsScreen() {
           { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border },
         ]}
       />
+      {query.trim().length > 0 && query.trim().length < 3 ? (
+        <ThemedText themeColor="textSecondary" style={styles.searchHint}>
+          {t('contacts.searchHint')}
+        </ThemedText>
+      ) : null}
 
       {searching ? <ActivityIndicator color={theme.tint} style={styles.pad} /> : null}
       {results.map((u) => (
@@ -196,10 +201,18 @@ export default function ContactsScreen() {
                 </ThemedText>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => respond(r.id, true)} hitSlop={8}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => respond(r.id, true)}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}>
                   <ThemedText style={[styles.accept, { color: theme.positive }]}>{t('contacts.accept')}</ThemedText>
                 </Pressable>
-                <Pressable onPress={() => respond(r.id, false)} hitSlop={8}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => respond(r.id, false)}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}>
                   <ThemedText style={[styles.decline, { color: theme.textSecondary }]}>
                     {t('contacts.decline')}
                   </ThemedText>
@@ -222,7 +235,7 @@ export default function ContactsScreen() {
           <Pressable
             key={contact.id}
             onLongPress={() => confirmRemove(contact)}
-            style={[styles.row, { borderColor: theme.border }]}>
+            style={({ pressed }) => [styles.row, { borderColor: theme.border }, pressed && styles.pressed]}>
             <View style={styles.rowMain}>
               <View style={styles.nameRow}>
                 <View
@@ -282,9 +295,12 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '600' },
   sub: { fontSize: 13 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  actions: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
+  actions: { flexDirection: 'row', gap: Spacing.two, alignItems: 'center' },
+  actionBtn: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.6 },
   accept: { fontSize: 15, fontWeight: '600' },
   decline: { fontSize: 15 },
   pad: { marginVertical: Spacing.three },
+  searchHint: { fontSize: 12, marginTop: Spacing.one },
   hint: { fontSize: 12, marginTop: Spacing.three, textAlign: 'center' },
 });

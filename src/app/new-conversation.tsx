@@ -96,25 +96,25 @@ export default function NewConversationScreen() {
 
       <View style={styles.grid}>
         <ActionCard
-          icon="📷"
+          icon="qr-code-outline"
           title={t('new.showQr')}
           subtitle={t('new.showQr.sub')}
           onPress={() => chooseMethod('qr')}
         />
         <ActionCard
-          icon="🔗"
+          icon="link-outline"
           title={t('new.createLink')}
           subtitle={t('new.createLink.sub')}
           onPress={() => chooseMethod('link')}
         />
         <ActionCard
-          icon="👥"
+          icon="people-outline"
           title={t('new.pickContact')}
           subtitle={t('new.pickContact.sub')}
           onPress={() => chooseMethod('contact')}
         />
         <ActionCard
-          icon="📍"
+          icon="location-outline"
           title={t('new.searchNearby')}
           subtitle={t('new.searchNearby.sub')}
           onPress={() => chooseMethod('nearby')}

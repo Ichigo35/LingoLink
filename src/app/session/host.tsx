@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -99,6 +100,7 @@ export default function HostSessionScreen() {
     if (!session) return;
     await Clipboard.setStringAsync(session.joinUrl);
     setCopied(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setTimeout(() => setCopied(false), 1500);
   }
 
@@ -174,13 +176,14 @@ export default function HostSessionScreen() {
         <>
           <Button
             label={t('host.shareLink')}
-            icon="🔗"
+            iconName="share-outline"
             onPress={shareLink}
             style={styles.cta}
           />
           <Button
             label={copied ? t('host.linkCopied') : t('host.copyLink')}
-            variant="secondary"
+            variant={copied ? 'primary' : 'secondary'}
+            iconName={copied ? 'checkmark-circle' : 'copy-outline'}
             onPress={copyLink}
           />
         </>

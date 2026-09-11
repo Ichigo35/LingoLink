@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -219,7 +220,12 @@ export default function ConversationScreen() {
             {connected ? t('conv.direct') : t('conv.offline')}
           </ThemedText>
         </View>
-        <Pressable onPress={() => setLeaveOpen(true)} hitSlop={10}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isCreator ? t('conv.end') : t('conv.leave')}
+          onPress={() => setLeaveOpen(true)}
+          hitSlop={10}
+          style={({ pressed }) => [styles.leaveBtn, pressed && styles.pressed]}>
           <ThemedText style={[styles.leave, { color: theme.danger }]}>
             {isCreator ? t('conv.end') : t('conv.leave')}
           </ThemedText>
@@ -230,19 +236,29 @@ export default function ConversationScreen() {
       {!ended && myLang && otherLang ? (
         <View style={[styles.langBar, { borderColor: theme.border }]}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('conv.changeLanguage')}
             onPress={() => {
               setLangError(null);
               setLangOpen(true);
             }}
             hitSlop={8}
-            style={[styles.langChip, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            style={({ pressed }) => [
+              styles.langChip,
+              { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+              pressed && styles.pressed,
+            ]}>
             <ThemedText style={styles.langChipText}>
-              {formatLanguage(myLang as LanguageCode)}  ✎
+              {formatLanguage(myLang as LanguageCode)}
             </ThemedText>
+            <Ionicons name="pencil" size={12} color={theme.textSecondary} />
           </Pressable>
-          <ThemedText themeColor="textSecondary" style={styles.langArrow}>
-            ⇄
-          </ThemedText>
+          <Ionicons
+            name="swap-horizontal"
+            size={15}
+            color={theme.textSecondary}
+            style={styles.langArrow}
+          />
           <ThemedText themeColor="textSecondary" style={styles.langOther}>
             {formatLanguage(otherLang as LanguageCode)}
           </ThemedText>
@@ -333,13 +349,15 @@ export default function ConversationScreen() {
           <Button label={t('common.home')} onPress={() => router.replace('/')} />
         ) : (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={recording ? t('conv.stopTalk') : t('conv.talk')}
             onPress={toggleRecord}
             disabled={!active}
-            style={[
+            style={({ pressed }) => [
               styles.mic,
               {
                 backgroundColor: recording ? theme.danger : theme.tint,
-                opacity: !active ? 0.5 : 1,
+                opacity: !active ? 0.5 : pressed ? 0.85 : 1,
               },
             ]}>
             {recording ? (
@@ -447,7 +465,9 @@ const styles = StyleSheet.create({
   topbarLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   topbarText: { fontSize: 15, fontWeight: '600' },
   rtBadge: { fontSize: 11 },
+  leaveBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.one },
   leave: { fontSize: 15, fontWeight: '600' },
+  pressed: { opacity: 0.6 },
   langBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -457,13 +477,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   langChip: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     borderRadius: Radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
   langChipText: { fontSize: 13, fontWeight: '600' },
-  langArrow: { fontSize: 13 },
+  langArrow: { marginHorizontal: 2 },
   langOther: { fontSize: 13, fontWeight: '600' },
   langBackdrop: {
     flex: 1,

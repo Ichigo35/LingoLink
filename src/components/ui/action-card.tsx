@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -5,7 +6,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ActionCardProps {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle?: string;
   onPress: () => void;
@@ -27,7 +28,12 @@ export function ActionCard({ icon, title, subtitle, onPress, emphasis = false }:
         },
         pressed && styles.pressed,
       ]}>
-      <ThemedText style={styles.icon}>{icon}</ThemedText>
+      <Ionicons
+        name={icon}
+        size={26}
+        color={emphasis ? theme.tintText : theme.text}
+        style={styles.icon}
+      />
       <ThemedText
         style={[styles.title, { color: emphasis ? theme.tintText : theme.text }]}>
         {title}
@@ -57,7 +63,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   icon: {
-    fontSize: 26,
     marginBottom: Spacing.one,
   },
   title: {

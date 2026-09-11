@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -10,7 +11,10 @@ interface ButtonProps {
   label: string;
   onPress: () => void;
   variant?: Variant;
+  /** Préfixe texte court (ex. "G" pour Google) — pour une icône, préférer `iconName`. */
   icon?: string;
+  /** Icône vectorielle Ionicons affichée avant le texte. */
+  iconName?: keyof typeof Ionicons.glyphMap;
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
@@ -21,6 +25,7 @@ export function Button({
   onPress,
   variant = 'primary',
   icon,
+  iconName,
   disabled = false,
   loading = false,
   style,
@@ -54,6 +59,11 @@ export function Button({
       ]}>
       {loading ? (
         <ActivityIndicator color={fg} />
+      ) : iconName ? (
+        <View style={styles.iconRow}>
+          <Ionicons name={iconName} size={18} color={fg} />
+          <ThemedText style={[styles.label, { color: fg }]}>{label}</ThemedText>
+        </View>
       ) : (
         <ThemedText style={[styles.label, { color: fg }]}>
           {icon ? `${icon}  ${label}` : label}
@@ -74,6 +84,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 17,
     fontWeight: '600',
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   dimmed: {
     opacity: 0.6,

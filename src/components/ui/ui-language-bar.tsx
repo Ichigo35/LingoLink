@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { LANGUAGES, UI_LANGUAGES } from '@/config/languages';
@@ -25,10 +25,7 @@ export function UiLanguageBar() {
       <ThemedText themeColor="textSecondary" style={styles.label}>
         {t('settings.uiLanguage')}
       </ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}>
+      <View style={styles.row}>
         {UI_LANGUAGES.map((code) => {
           const lang = LANGUAGES[code];
           const selected = code === uiLanguage;
@@ -52,7 +49,7 @@ export function UiLanguageBar() {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -60,8 +57,17 @@ export function UiLanguageBar() {
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.one, alignSelf: 'stretch' },
   label: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  row: { gap: Spacing.two, paddingVertical: Spacing.one, paddingHorizontal: Spacing.two },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.two,
+  },
   pill: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: Radius.pill,

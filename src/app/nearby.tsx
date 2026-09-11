@@ -1,7 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -148,9 +149,12 @@ export default function NearbyScreen() {
           </View>
         ) : (
           users.map((u) => (
-            <Pressable key={u.profileId} style={[styles.row, { borderColor: theme.border }]}>
+            <View key={u.profileId} style={[styles.row, { borderColor: theme.border }]}>
               <View style={styles.rowMain}>
-                <ThemedText style={styles.name}>👤 {u.displayName}</ThemedText>
+                <View style={styles.nameRow}>
+                  <Ionicons name="person-circle-outline" size={18} color={theme.textSecondary} />
+                  <ThemedText style={styles.name}>{u.displayName}</ThemedText>
+                </View>
                 <ThemedText themeColor="textSecondary" style={styles.sub}>
                   {u.language && isLanguageCode(u.language) ? formatLanguage(u.language) : '—'}
                   {'  ·  ~'}
@@ -162,7 +166,7 @@ export default function NearbyScreen() {
                 onPress={() => connect(u)}
                 loading={requesting === u.profileId}
               />
-            </Pressable>
+            </View>
           ))
         )
       ) : null}
@@ -196,6 +200,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowMain: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   name: { fontSize: 16, fontWeight: '600' },
   sub: { fontSize: 13 },
 });

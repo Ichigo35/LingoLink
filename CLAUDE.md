@@ -5,13 +5,16 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-10) — MVP complet + 9 itérations de retours terrain
+## État (2026-09-11) — MVP complet + 10 itérations de retours terrain / revue UX
 
 - **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
+  Itér. 10 = app uniquement, **pas de redéploiement Worker nécessaire**.
 - **Web** déployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  (itér. 9).
-- **APK** `build-output/LingoLink.apk` à jour (itér. 9). App iOS sur simulateur.
+  (itér. 9) — **redeploy web recommandé** pour publier l'itér. 10
+  (`bash scripts/deploy-web.sh`), pas encore fait à ce stade.
+- **APK** `build-output/LingoLink.apk` — **pas encore rebuild** avec l'itér. 10 ;
+  `bash scripts/build-apk.sh` à relancer avant de distribuer. App iOS sur simulateur.
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -20,6 +23,38 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 10** — **revue UX/UI experte + corrections** (aucune demande utilisateur
+  précise, audit proactif de tous les écrans). Dépendance ajoutée :
+  **`@expo/vector-icons`** (déjà transitive via Expo, installée en directe via
+  `npx expo install`). (a) **système d'icônes emoji → vectoriel** : `Button`
+  (nouveau prop `iconName` Ionicons, `icon` string gardé pour "G" Google) et
+  `ActionCard` (`icon` devient `keyof typeof Ionicons.glyphMap` au lieu d'un
+  emoji) ; tous les call sites (`index.tsx`, `new-conversation.tsx`,
+  `session/host.tsx`, `conversation/[id].tsx`, `nearby.tsx`) migrés — rendu
+  cohérent iOS/Android/web au lieu de glyphes emoji dépendants de la plateforme.
+  (b) **cibles tactiles sous le minimum 44×44** portées à `minHeight: 44` +
+  retour visuel `pressed` : icônes Profil/Réglages de l'accueil (désormais avec
+  libellé texte sous l'icône — coupe court à la confusion « je ne sais pas où
+  cliquer » déjà vécue en itér. 9), chip de langue en conversation
+  (`conversation/[id].tsx`), boutons Accepter/Refuser (`contacts.tsx`). (c)
+  **sélection couleur-seule corrigée** : Réglages (thème + langue d'UI) affiche
+  désormais une coche `iconName="checkmark"` sur l'option active, plus seulement
+  un remplissage de couleur. (d) **sélecteur de langue** (`language-selector.tsx`,
+  `ui-language-bar.tsx`) : `ScrollView` horizontal peu découvrable → grille
+  `flexWrap` (les 8 langues sont toutes visibles sans scroller). (e) **bug
+  couleur en dur** dans `themed-text.tsx` (`linkPrimary` avait `#3c87f7` au lieu
+  d'un token du thème — violait la règle documentée dans `theme.ts`, mais le
+  type n'était utilisé nulle part donc sans impact visible) — corrigé pour
+  retomber sur `theme.tint`. (f) **`Pressable` mort** dans `nearby.tsx` (la ligne
+  utilisateur n'avait pas de `onPress`, seul le bouton interne réagissait) →
+  simplifié en `View`. (g) **hint de recherche contacts** ajouté
+  (`contacts.searchHint`, 8 langues) quand `0 < requête < 3` caractères, au lieu
+  de ne rien afficher. (h) **feedback copie de lien renforcé** (`session/host.tsx`) :
+  haptique de succès + bouton qui passe en `primary` avec icône `checkmark-circle`
+  pendant 1,5 s, au lieu d'un simple changement de texte. Revue complète menée
+  par un agent dédié (10 constats, tous corrigés) ; validé par `tsc`/`lint` +
+  captures Playwright web (accueil invité, Réglages, écran « Rejoindre »).
+  Pas de migration, pas de changement serveur.
 - **Itér. 9** — **langue de l'invité qui rejoint via un lien** (retour terrain :
   téléphone lao → page de connexion en français, l'invité ne savait pas où
   cliquer, puis bloqué sur la page de rebond). (a) **page `/join/:token` du Worker

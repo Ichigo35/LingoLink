@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -30,14 +31,24 @@ export default function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('nav.profile')}
-              onPress={() => router.push('/profile')}>
-              <ThemedText style={styles.headerIcon}>👤</ThemedText>
+              hitSlop={8}
+              onPress={() => router.push('/profile')}
+              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}>
+              <Ionicons name="person-circle-outline" size={22} color={theme.text} />
+              <ThemedText themeColor="textSecondary" style={styles.headerBtnLabel}>
+                {t('nav.profile')}
+              </ThemedText>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('nav.settings')}
-              onPress={() => router.push('/settings')}>
-              <ThemedText style={styles.headerIcon}>⚙️</ThemedText>
+              hitSlop={8}
+              onPress={() => router.push('/settings')}
+              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}>
+              <Ionicons name="settings-outline" size={22} color={theme.text} />
+              <ThemedText themeColor="textSecondary" style={styles.headerBtnLabel}>
+                {t('nav.settings')}
+              </ThemedText>
             </Pressable>
           </View>
         </View>
@@ -57,8 +68,13 @@ export default function HomeScreen() {
 
       {resumable ? (
         <Pressable
+          accessibilityRole="button"
           onPress={() => router.push(`/conversation/${activeSession.id}`)}
-          style={[styles.resume, { backgroundColor: theme.tint }]}>
+          style={({ pressed }) => [
+            styles.resume,
+            { backgroundColor: theme.tint },
+            pressed && styles.resumePressed,
+          ]}>
           <ThemedText style={[styles.resumeText, { color: theme.tintText }]}>
             {t('home.resume')}
           </ThemedText>
@@ -68,7 +84,7 @@ export default function HomeScreen() {
       <View style={styles.grid}>
         {!webJoinOnly ? (
           <ActionCard
-            icon="⚡"
+            icon="add-circle-outline"
             title={t('home.newConversation')}
             subtitle={t('home.newConversation.sub')}
             emphasis
@@ -76,7 +92,7 @@ export default function HomeScreen() {
           />
         ) : null}
         <ActionCard
-          icon={webJoinOnly ? '🔗' : '📷'}
+          icon={webJoinOnly ? 'link-outline' : 'camera-outline'}
           title={webJoinOnly ? t('home.joinWeb') : t('home.scan')}
           subtitle={webJoinOnly ? t('home.joinWeb.sub') : t('home.scan.sub')}
           emphasis={webJoinOnly}
@@ -85,13 +101,13 @@ export default function HomeScreen() {
         {!webJoinOnly ? (
           <>
             <ActionCard
-              icon="👥"
+              icon="people-outline"
               title={t('home.contacts')}
               subtitle={t('home.contacts.sub')}
               onPress={() => router.push('/contacts')}
             />
             <ActionCard
-              icon="📍"
+              icon="location-outline"
               title={t('home.nearby')}
               subtitle={t('home.nearby.sub')}
               onPress={() => router.push('/nearby')}
@@ -114,7 +130,16 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   logo: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
   headerActions: { flexDirection: 'row', gap: Spacing.three },
-  headerIcon: { fontSize: 22 },
+  headerBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    borderRadius: Radius.sm,
+  },
+  headerBtnPressed: { opacity: 0.6 },
+  headerBtnLabel: { fontSize: 11 },
   tagline: { fontSize: 16, lineHeight: 22 },
   identity: { fontSize: 13 },
   resume: {
@@ -123,6 +148,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.three,
   },
+  resumePressed: { opacity: 0.85 },
   resumeText: { fontSize: 16, fontWeight: '700' },
   grid: { gap: Spacing.three },
   footer: {

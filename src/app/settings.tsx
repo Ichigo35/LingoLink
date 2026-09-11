@@ -40,6 +40,7 @@ export default function SettingsScreen() {
             <Button
               key={opt.value}
               label={t(opt.labelKey)}
+              iconName={themePreference === opt.value ? 'checkmark' : undefined}
               variant={themePreference === opt.value ? 'primary' : 'secondary'}
               onPress={() => setThemePreference(opt.value)}
               style={styles.flex}
@@ -55,6 +56,7 @@ export default function SettingsScreen() {
             <Button
               key={opt.value}
               label={opt.label}
+              iconName={uiLanguage === opt.value ? 'checkmark' : undefined}
               variant={uiLanguage === opt.value ? 'primary' : 'secondary'}
               onPress={() => setUiLanguage(opt.value)}
               style={styles.langButton}

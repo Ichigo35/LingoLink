@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { LANGUAGE_LIST, type LanguageCode } from '@/config/languages';
@@ -21,10 +21,7 @@ export function LanguageSelector({ label, value, onChange, exclude }: LanguageSe
       <ThemedText themeColor="textSecondary" style={styles.label}>
         {label}
       </ThemedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}>
+      <View style={styles.row}>
         {LANGUAGE_LIST.filter((lang) => lang.code !== exclude).map((lang) => {
           const selected = lang.code === value;
           return (
@@ -50,7 +47,7 @@ export function LanguageSelector({ label, value, onChange, exclude }: LanguageSe
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </>
   );
 }
@@ -61,10 +58,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
     paddingVertical: Spacing.one,
   },
   pill: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderRadius: Radius.pill,
