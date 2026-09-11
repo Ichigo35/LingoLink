@@ -11,12 +11,11 @@ sections). Répondre **toujours en français**.
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
   Itér. 10 et 11 = app uniquement, pas de redéploiement Worker nécessaire.
 - **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  avec l'itér. 10 (`bash scripts/deploy-web.sh`). ⚠️ **Pas encore redéployé avec
-  l'itér. 11** (nouvelle palette Warm Bridge) — à faire au prochain
-  `bash scripts/deploy-web.sh` si on veut le web à jour visuellement.
+  avec l'itér. 11 (`bash scripts/deploy-web.sh`, palette Warm Bridge en ligne).
 - **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 11 (57 Mo, arm64,
-  signé release). App iOS sur simulateur (pas rebuild depuis l'itér. 11, mais
-  même code source — `expo run:ios` pour tester si besoin).
+  signé release). **App iOS rebuild avec l'itér. 11** sur simulateur
+  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement (accueil en grille
+  2×2, accent corail).
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -197,6 +196,13 @@ Le build simulateur iOS (`expo run:ios`) ne produit pas d'artefact à conserver.
   la main via `xcrun simctl boot|install|launch` (l'`.app` est dans DerivedData
   `Build/Products/Debug-iphonesimulator/LingoLink.app`, bundle id
   `com.ichigo35.lingolink`). Metro sert le JS sur :8081.
+  ⚠️ **Échec `[CP-User] [Hermes] Replace Hermes…`** avec `node: No such file or
+  directory` (vécu 2026-09-11 après une mise à jour Homebrew de node) : le
+  prebuild a figé un chemin absolu dans `ios/.xcode.env.local`
+  (`NODE_BINARY=/opt/homebrew/Cellar/node/<ancienne-version>/bin/node`). Corriger
+  en éditant ce fichier (gitignored, régénéré par un futur `expo prebuild`) avec
+  `NODE_BINARY=$(command -v node)` ou le chemin symlink stable
+  `/opt/homebrew/bin/node`.
 - `android/` et `ios/` sont **gitignored** (workflow managed, prebuild à la demande).
 - **Icône / splash** : `app.json` → `icon` (top-level, plus de `ios.icon`),
   `expo-splash-screen` (`imageWidth: 200`), `android.adaptiveIcon`. Logo = deux
