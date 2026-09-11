@@ -5,15 +5,18 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-11) — MVP complet + 10 itérations de retours terrain / revue UX
+## État (2026-09-11) — MVP complet + 11 itérations de retours terrain / revue UX
 
 - **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
-  Itér. 10 = app uniquement, pas de redéploiement Worker nécessaire.
+  Itér. 10 et 11 = app uniquement, pas de redéploiement Worker nécessaire.
 - **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  avec l'itér. 10 (`bash scripts/deploy-web.sh`).
-- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 10 (57 Mo, arm64,
-  signé release). App iOS sur simulateur.
+  avec l'itér. 10 (`bash scripts/deploy-web.sh`). ⚠️ **Pas encore redéployé avec
+  l'itér. 11** (nouvelle palette Warm Bridge) — à faire au prochain
+  `bash scripts/deploy-web.sh` si on veut le web à jour visuellement.
+- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 11 (57 Mo, arm64,
+  signé release). App iOS sur simulateur (pas rebuild depuis l'itér. 11, mais
+  même code source — `expo run:ios` pour tester si besoin).
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -22,6 +25,36 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 11** — **nouvelle direction visuelle « Warm Bridge »**, générée via
+  MCP Stitch (exploration libre demandée par l'utilisateur, 11 écrans conçus
+  dans un projet Stitch dédié) puis portée dans le code. Palette et layout
+  choisis, portage limité par l'accessibilité et le multi-script :
+  (a) **`src/constants/theme.ts`** : accent bleu (`#2F6BFF`) remplacé par un
+  corail chaud — `#D14526` en clair (texte blanc dessus, contraste ~4.6:1 ; le
+  corail vif `#FF6B4A` de la maquette Stitch ne passait pas l'AA avec du texte
+  blanc, ~2.8:1) et `#FF8F6B` en sombre (texte quasi noir dessus, contraste
+  ~8.8:1). Neutres (`background*`, `border`, `text*`) réchauffés (légère
+  tonalité chaude au lieu du gris-bleu froid précédent), light et dark.
+  `Radius` agrandi (`sm` 10→12, `md` 16→20, `lg` 24→28) pour des coins plus
+  généreux. Comme tout passe par `useTheme()`/`Radius`/`Spacing`, ce seul
+  fichier reskin toute l'app. (b) **grilles 2×2** au lieu d'empilement vertical
+  pour les cartes d'action : `ActionCard` accepte désormais un prop `style`
+  (`src/components/ui/action-card.tsx`) ; `index.tsx` (accueil) et
+  `new-conversation.tsx` (étape « Comment se connecter ») passent leur
+  conteneur en `flexDirection: 'row', flexWrap: 'wrap'` avec des cartes
+  `flexBasis: '46%'` — correspond à la mise en page des maquettes Stitch. La
+  carte « Afficher un QR code » de `new-conversation.tsx` passe en `emphasis`
+  (accent plein), comme mise en avant dans la maquette. (c) **volontairement
+  pas de changement de police** : la maquette Stitch utilisait Plus Jakarta
+  Sans, mais l'app affiche 8 langues dont lao/thaï/hindi/CJK/coréen — charger
+  une police web latine changerait le rendu Latin sans réel bénéfice et
+  ajoute de la complexité (chargement `expo-font`, rebuild natif) pour un
+  gain cosmétique incertain sur les scripts non-latins ; le choix a été de
+  garder les polices système par plateforme (`Fonts` dans `theme.ts`,
+  inchangé). Vérifié par `tsc`/`lint` + captures Playwright web (bienvenue,
+  onboarding, réglages, nouvelle conversation étape 2). Pas de migration, pas
+  de changement serveur. Galerie des 11 maquettes Stitch (avant portage) :
+  artifact `https://claude.ai/code/artifact/ae3c1853-fa20-479f-b9bf-db00775dd721`.
 - **Itér. 10** — **revue UX/UI experte + corrections** (aucune demande utilisateur
   précise, audit proactif de tous les écrans). Dépendance ajoutée :
   **`@expo/vector-icons`** (déjà transitive via Expo, installée en directe via

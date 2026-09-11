@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -11,9 +11,17 @@ interface ActionCardProps {
   subtitle?: string;
   onPress: () => void;
   emphasis?: boolean;
+  style?: ViewStyle;
 }
 
-export function ActionCard({ icon, title, subtitle, onPress, emphasis = false }: ActionCardProps) {
+export function ActionCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  emphasis = false,
+  style,
+}: ActionCardProps) {
   const theme = useTheme();
 
   return (
@@ -27,6 +35,7 @@ export function ActionCard({ icon, title, subtitle, onPress, emphasis = false }:
           borderColor: theme.border,
         },
         pressed && styles.pressed,
+        style,
       ]}>
       <Ionicons
         name={icon}

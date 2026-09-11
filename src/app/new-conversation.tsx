@@ -100,24 +100,29 @@ export default function NewConversationScreen() {
           title={t('new.showQr')}
           subtitle={t('new.showQr.sub')}
           onPress={() => chooseMethod('qr')}
+          emphasis
+          style={styles.gridCard}
         />
         <ActionCard
           icon="link-outline"
           title={t('new.createLink')}
           subtitle={t('new.createLink.sub')}
           onPress={() => chooseMethod('link')}
+          style={styles.gridCard}
         />
         <ActionCard
           icon="people-outline"
           title={t('new.pickContact')}
           subtitle={t('new.pickContact.sub')}
           onPress={() => chooseMethod('contact')}
+          style={styles.gridCard}
         />
         <ActionCard
           icon="location-outline"
           title={t('new.searchNearby')}
           subtitle={t('new.searchNearby.sub')}
           onPress={() => chooseMethod('nearby')}
+          style={styles.gridCard}
         />
       </View>
 
@@ -141,9 +146,12 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.three,
     marginTop: Spacing.two,
   },
+  gridCard: { flexBasis: '46%', flexGrow: 1 },
   cta: {
     marginTop: Spacing.four,
   },

@@ -1,9 +1,17 @@
 /**
- * Design tokens for Lingo Link.
+ * Design tokens for Lingo Link — direction "Warm Bridge" (itér. 11, exploration
+ * Stitch portée dans l'app : voir CLAUDE.md).
  *
- * Palette premium / minimaliste, pensée pour une lecture rapide entre deux
- * personnes : fort contraste, une seule couleur d'accent, dark mode natif.
- * Ne jamais coder une couleur en dur dans un composant : passer par `useTheme()`.
+ * Palette chaleureuse et humaine, pensée pour une lecture rapide entre deux
+ * personnes : un seul accent corail fort, neutres à légère tonalité chaude,
+ * dark mode natif. Ne jamais coder une couleur en dur dans un composant :
+ * passer par `useTheme()`.
+ *
+ * Le corail de la maquette Stitch (#FF6B4A) est trop clair pour porter du
+ * texte blanc en accessibilité (contraste ~2.8:1, sous le seuil AA 4.5:1) :
+ * `brand` est une teinte plus profonde de la même famille qui passe le
+ * contraste (~4.6:1) ; `brandDark` (mode sombre, texte foncé dessus) peut
+ * rester plus vif.
  */
 
 import '@/global.css';
@@ -11,8 +19,8 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 const palette = {
-  brand: '#2F6BFF',
-  brandDark: '#5B8CFF',
+  brand: '#D14526',
+  brandDark: '#FF8F6B',
   positive: '#1FB57A',
   warning: '#F0A020',
   danger: '#E5484D',
@@ -20,12 +28,12 @@ const palette = {
 
 export const Colors = {
   light: {
-    text: '#0B0C0F',
-    textSecondary: '#5B606B',
+    text: '#1C1B1A',
+    textSecondary: '#68615A',
     background: '#FFFFFF',
-    backgroundElement: '#F3F4F7',
-    backgroundSelected: '#E4E7EE',
-    border: '#E1E3E9',
+    backgroundElement: '#F5F1EC',
+    backgroundSelected: '#EFE3D9',
+    border: '#E7E0D8',
     tint: palette.brand,
     tintText: '#FFFFFF',
     positive: palette.positive,
@@ -33,14 +41,14 @@ export const Colors = {
     danger: palette.danger,
   },
   dark: {
-    text: '#FFFFFF',
-    textSecondary: '#A0A5AE',
-    background: '#0A0B0D',
-    backgroundElement: '#17191D',
-    backgroundSelected: '#23262B',
-    border: '#26292F',
+    text: '#F5F1EC',
+    textSecondary: '#B3AC9F',
+    background: '#15120F',
+    backgroundElement: '#211C17',
+    backgroundSelected: '#2E2620',
+    border: '#332C24',
     tint: palette.brandDark,
-    tintText: '#0A0B0D',
+    tintText: '#1C1006',
     positive: palette.positive,
     warning: palette.warning,
     danger: palette.danger,
@@ -81,9 +89,9 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  sm: 10,
-  md: 16,
-  lg: 24,
+  sm: 12,
+  md: 20,
+  lg: 28,
   pill: 999,
 } as const;
 

@@ -89,6 +89,7 @@ export default function HomeScreen() {
             subtitle={t('home.newConversation.sub')}
             emphasis
             onPress={() => router.push('/new-conversation')}
+            style={styles.gridCard}
           />
         ) : null}
         <ActionCard
@@ -97,6 +98,7 @@ export default function HomeScreen() {
           subtitle={webJoinOnly ? t('home.joinWeb.sub') : t('home.scan.sub')}
           emphasis={webJoinOnly}
           onPress={() => router.push('/scan')}
+          style={styles.gridCard}
         />
         {!webJoinOnly ? (
           <>
@@ -105,12 +107,14 @@ export default function HomeScreen() {
               title={t('home.contacts')}
               subtitle={t('home.contacts.sub')}
               onPress={() => router.push('/contacts')}
+              style={styles.gridCard}
             />
             <ActionCard
               icon="location-outline"
               title={t('home.nearby')}
               subtitle={t('home.nearby.sub')}
               onPress={() => router.push('/nearby')}
+              style={styles.gridCard}
             />
           </>
         ) : null}
@@ -150,7 +154,8 @@ const styles = StyleSheet.create({
   },
   resumePressed: { opacity: 0.85 },
   resumeText: { fontSize: 16, fontWeight: '700' },
-  grid: { gap: Spacing.three },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.three },
+  gridCard: { flexBasis: '46%', flexGrow: 1 },
   footer: {
     textAlign: 'center',
     marginTop: Spacing.four,
