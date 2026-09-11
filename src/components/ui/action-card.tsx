@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -30,19 +30,17 @@ export function ActionCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: emphasis ? theme.tint : theme.backgroundElement,
-          borderColor: theme.border,
-        },
+        { backgroundColor: emphasis ? theme.tint : theme.backgroundElement },
         pressed && styles.pressed,
         style,
       ]}>
-      <Ionicons
-        name={icon}
-        size={26}
-        color={emphasis ? theme.tintText : theme.text}
-        style={styles.icon}
-      />
+      <View
+        style={[
+          styles.iconBadge,
+          { backgroundColor: emphasis ? 'rgba(255,255,255,0.22)' : theme.backgroundSelected },
+        ]}>
+        <Ionicons name={icon} size={22} color={emphasis ? theme.tintText : theme.tint} />
+      </View>
       <ThemedText
         style={[styles.title, { color: emphasis ? theme.tintText : theme.text }]}>
         {title}
@@ -63,15 +61,24 @@ export function ActionCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: Spacing.four,
     paddingHorizontal: Spacing.four,
     gap: Spacing.one,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   pressed: {
     opacity: 0.7,
   },
-  icon: {
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.one,
   },
   title: {

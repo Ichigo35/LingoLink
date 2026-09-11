@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   tagline: { fontSize: 16, lineHeight: 22 },
   identity: { fontSize: 13 },
   resume: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     paddingVertical: Spacing.three,
     alignItems: 'center',
     marginBottom: Spacing.three,

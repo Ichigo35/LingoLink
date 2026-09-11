@@ -5,17 +5,17 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-11) — MVP complet + 11 itérations de retours terrain / revue UX
+## État (2026-09-11) — MVP complet + 12 itérations de retours terrain / revue UX
 
 - **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
-  Itér. 10 et 11 = app uniquement, pas de redéploiement Worker nécessaire.
+  Itér. 10, 11 et 12 = app uniquement, pas de redéploiement Worker nécessaire.
 - **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  avec l'itér. 11 (`bash scripts/deploy-web.sh`, palette Warm Bridge en ligne).
-- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 11 (57 Mo, arm64,
-  signé release). **App iOS rebuild avec l'itér. 11** sur simulateur
-  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement (accueil en grille
-  2×2, accent corail).
+  avec l'itér. 12 (`bash scripts/deploy-web.sh`, boutons pilule + nouveau logo).
+- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 12 (57 Mo, arm64,
+  signé release). **App iOS rebuild avec l'itér. 12** sur simulateur
+  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement (boutons pilule,
+  badges d'icône, nouveau logo bulles de dialogue).
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -24,6 +24,41 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 12** — **fidélité aux maquettes Stitch** (retour utilisateur après
+  itér. 11 : « je veux exactement les mêmes boutons » que dans la galerie
+  publiée). (a) **`Button`** (`src/components/ui/button.tsx`) : `borderRadius`
+  passe de `Radius.md` à **`Radius.pill`** (pilule pleine, comme dans toutes les
+  maquettes) + ombre douce (`shadowColor`/`elevation`) sur les variantes
+  `primary`/`danger` uniquement (`secondary`/`ghost` restent plates, fidèle aux
+  maquettes). (b) **`ActionCard`** (`src/components/ui/action-card.tsx`) :
+  bordure hairline retirée au profit d'une ombre douce ; l'icône est désormais
+  dans un **badge carré arrondi** (40×40, `Radius.sm`) — fond
+  `backgroundSelected` + icône teintée `theme.tint` en carte neutre, fond blanc
+  translucide + icône `tintText` en carte `emphasis` — comme dans les maquettes
+  (au lieu d'une icône nue sur fond uni). (c) **bouton micro** de
+  `conversation/[id].tsx` : `Radius.lg` → `Radius.pill` + ombre, cohérent avec
+  le « bouton héros pilule » de la maquette. (d) **bannière « Reprendre »**
+  (`index.tsx`) : `Radius.md` → `Radius.lg`. (e) **nouveau logo** : les deux
+  anneaux entrelacés (`link-ring.svg`) remplacés par **deux bulles de dialogue
+  qui se chevauchent** (`assets/icon-src/bubble-back.svg` +
+  `bubble-front.svg`), concept choisi parmi 6 générés par MCP Stitch (planche
+  d'exploration, projet Stitch de l'itér. 11) — c'est ce motif qui apparaissait
+  déjà à côté du mot-symbole « Lingo Link » dans les maquettes de l'itér. 11.
+  Stitch ne produit pas de vecteur exploitable tel quel pour une icône
+  d'app (rendu HTML/raster) : le SVG a été redessiné à la main à partir du
+  concept retenu, en respectant la contrainte du moteur SVG d'ImageMagick
+  (aplats uniquement, pas de dégradé). `assets/icon-src/build.sh` : logique
+  d'entrelacement adaptée à deux formes différentes (au lieu d'une forme
+  pivotée à 180°), `BRAND` passé à `#D14526` (corail, au lieu de l'ancien
+  `#2F6BFF`). Assets régénérés (`assets/images/*`). (f) **page de chargement
+  (splash)** : `app.json` plugin `expo-splash-screen` `backgroundColor`
+  (bleu `#2F6BFF`) → **corail `#D14526`** en clair, → **`#15120F`** (nouveau
+  quasi-noir chaud) en sombre (au lieu de l'ancien `#0A0B0D`) ; **icône
+  adaptative Android** (`android.adaptiveIcon.backgroundColor`) même
+  changement bleu → corail. Vérifié `tsc`/`lint` + captures Playwright web
+  (bienvenue, réglages, nouvelle conversation étape 2) + capture simulateur
+  iOS. Pas de migration, pas de changement serveur. Web + APK + iOS régénérés
+  dans la foulée (voir État ci-dessus).
 - **Itér. 11** — **nouvelle direction visuelle « Warm Bridge »**, générée via
   MCP Stitch (exploration libre demandée par l'utilisateur, 11 écrans conçus
   dans un projet Stitch dédié) puis portée dans le code. Palette et layout
@@ -205,11 +240,14 @@ Le build simulateur iOS (`expo run:ios`) ne produit pas d'artefact à conserver.
   `/opt/homebrew/bin/node`.
 - `android/` et `ios/` sont **gitignored** (workflow managed, prebuild à la demande).
 - **Icône / splash** : `app.json` → `icon` (top-level, plus de `ios.icon`),
-  `expo-splash-screen` (`imageWidth: 200`), `android.adaptiveIcon`. Logo = deux
-  anneaux à coins arrondis entrelacés (`assets/icon-src/link-ring.svg`, l'autre
-  maillon = ce SVG pivoté 180°). Régénérer : `bash assets/icon-src/build.sh`
-  (ImageMagick ; SVG en aplats — pas de gradient ni de `stroke` seul — mais
-  `fill-rule="evenodd"` OK pour le trou de l'anneau).
+  `expo-splash-screen` (`backgroundColor` corail `#D14526` clair /
+  `#15120F` sombre, `imageWidth: 200`), `android.adaptiveIcon` (même corail).
+  Logo (itér. 12) = deux bulles de dialogue qui se chevauchent
+  (`assets/icon-src/bubble-back.svg` + `bubble-front.svg`, blanc sur fond
+  corail `BRAND` du script). Régénérer : `bash assets/icon-src/build.sh`
+  (ImageMagick ; SVG en aplats — pas de gradient ni de `stroke` seul — le
+  liseré entre les deux bulles est créé par dilatation + découpe, pas par
+  `fill-rule="evenodd"`).
 
 ## Architecture
 

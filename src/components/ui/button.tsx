@@ -53,6 +53,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: bg },
+        (variant === 'primary' || variant === 'danger') && styles.lifted,
         variant === 'ghost' && { borderWidth: 1, borderColor: theme.border },
         (pressed || disabled || loading) && styles.dimmed,
         style,
@@ -76,10 +77,17 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     minHeight: 56,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.four,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.five,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  lifted: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4,
   },
   label: {
     fontSize: 17,

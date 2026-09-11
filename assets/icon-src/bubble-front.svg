@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Bulle avant, avec petite queue — se superpose à bubble-back.svg. -->
+  <path fill="#FFFFFF" d="M306,430 H624 Q700,430 700,506 V704 Q700,780 624,780 H306 Q230,780 230,704 V506 Q230,430 306,430 Z
+                          M300,778 C296,800 272,834 246,861 C238,870 250,873 268,862 C302,840 333,802 347,779 Z"/>
+</svg>

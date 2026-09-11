@@ -528,9 +528,14 @@ const styles = StyleSheet.create({
   micZone: { padding: Spacing.three },
   mic: {
     minHeight: 72,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 5,
   },
   micLabel: { fontSize: 17, fontWeight: '700' },
 });

@@ -14,7 +14,7 @@
     "android": {
       "package": "com.ichigo35.lingolink",
       "adaptiveIcon": {
-        "backgroundColor": "#2F6BFF",
+        "backgroundColor": "#D14526",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -48,11 +48,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2F6BFF",
+          "backgroundColor": "#D14526",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "dark": {
-            "backgroundColor": "#0A0B0D",
+            "backgroundColor": "#15120F",
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 200
           }

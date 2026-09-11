@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- Un maillon (anneau à coins arrondis, forme de bulle). Le maillon B = ce
-       fichier pivoté 180°. Les deux s'entrelacent = le « Link » de Lingo Link. -->
-  <path fill="#FFFFFF" fill-rule="evenodd"
-        d="M374 288 h148 a118 118 0 0 1 118 118 v148 a118 118 0 0 1 -118 118 h-148 a118 118 0 0 1 -118 -118 v-148 a118 118 0 0 1 118 -118 z
-           M400 384 h96 a52 52 0 0 1 52 52 v92 a52 52 0 0 1 -52 52 h-96 a52 52 0 0 1 -52 -52 v-92 a52 52 0 0 1 52 -52 z"/>
-</svg>
