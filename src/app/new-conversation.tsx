@@ -2,14 +2,17 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
+
 import { ThemedText } from '@/components/themed-text';
-import { ActionCard } from '@/components/ui/action-card';
+import { ActionRow } from '@/components/ui/action-row';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { Screen } from '@/components/ui/screen';
 import { formatLanguage, type LanguageCode } from '@/config/languages';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useConversationGuard } from '@/features/conversation/conversation-guard';
+import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { useNewConversationStore } from '@/stores/new-conversation-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -17,6 +20,7 @@ import type { ConnectionMethod } from '@/types';
 
 export default function NewConversationScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const t = useT();
   const guard = useConversationGuard();
   const { lastMyLanguage, lastOtherLanguage, setLastLanguages } = useSettingsStore();
@@ -89,40 +93,44 @@ export default function NewConversationScreen() {
     <Screen scroll>
       <ThemedText style={styles.h1}>{t('new.howToConnect')}</ThemedText>
       {myLang && otherLang ? (
-        <ThemedText themeColor="textSecondary">
-          {formatLanguage(myLang)} ↔ {formatLanguage(otherLang)}
-        </ThemedText>
+        <View
+          style={[
+            styles.langChip,
+            { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+          ]}>
+          <ThemedText style={styles.langChipText}>
+            {formatLanguage(myLang)} ⇄ {formatLanguage(otherLang)}
+          </ThemedText>
+          <Ionicons name="pencil" size={14} color={theme.textSecondary} />
+        </View>
       ) : null}
 
-      <View style={styles.grid}>
-        <ActionCard
+      <View style={styles.list}>
+        <ActionRow
           icon="qr-code-outline"
           title={t('new.showQr')}
           subtitle={t('new.showQr.sub')}
           onPress={() => chooseMethod('qr')}
-          emphasis
-          style={styles.gridCard}
+          recommended
+          recommendedLabel={t('new.recommended')}
         />
-        <ActionCard
+        <ActionRow
           icon="link-outline"
           title={t('new.createLink')}
           subtitle={t('new.createLink.sub')}
           onPress={() => chooseMethod('link')}
-          style={styles.gridCard}
         />
-        <ActionCard
+        <ActionRow
           icon="people-outline"
           title={t('new.pickContact')}
           subtitle={t('new.pickContact.sub')}
           onPress={() => chooseMethod('contact')}
-          style={styles.gridCard}
         />
-        <ActionCard
+        <ActionRow
           icon="location-outline"
           title={t('new.searchNearby')}
           subtitle={t('new.searchNearby.sub')}
           onPress={() => chooseMethod('nearby')}
-          style={styles.gridCard}
         />
       </View>
 
@@ -145,13 +153,24 @@ const styles = StyleSheet.create({
   block: {
     gap: Spacing.two,
   },
-  grid: {
+  langChip: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.three,
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  langChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  list: {
+    gap: Spacing.two,
     marginTop: Spacing.two,
   },
-  gridCard: { flexBasis: '46%', flexGrow: 1 },
   cta: {
     marginTop: Spacing.four,
   },

@@ -5,17 +5,16 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-11) — MVP complet + 12 itérations de retours terrain / revue UX
+## État (2026-09-11) — MVP complet + 13 itérations de retours terrain / revue UX
 
 - **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
-  Itér. 10, 11 et 12 = app uniquement, pas de redéploiement Worker nécessaire.
+  Itér. 10 à 13 = app uniquement, pas de redéploiement Worker nécessaire.
 - **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  avec l'itér. 12 (`bash scripts/deploy-web.sh`, boutons pilule + nouveau logo).
-- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 12 (57 Mo, arm64,
-  signé release). **App iOS rebuild avec l'itér. 12** sur simulateur
-  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement (boutons pilule,
-  badges d'icône, nouveau logo bulles de dialogue).
+  avec l'itér. 13 (`bash scripts/deploy-web.sh`).
+- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 13 (57 Mo, arm64,
+  signé release). **App iOS rebuild avec l'itér. 13** sur simulateur
+  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement.
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
@@ -24,6 +23,28 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 13** — **correction d'un vrai écart avec la maquette Stitch**, signalé
+  par l'utilisateur avec capture à l'appui (comparaison écran réel vs maquette
+  `new-conversation.png`) : l'écran « Comment vous connecter ? » (étape 2 de
+  `new-conversation.tsx`) était en **grille 2×2** de cartes alors que la
+  maquette Stitch montre une **liste verticale de lignes** (icône ronde à
+  gauche, titre + sous-titre, chevron à droite, option recommandée surlignée
+  d'une bordure + badge « Recommandé »). **Cause racine** : lors du portage
+  itér. 11/12 je m'étais fié à ma description textuelle de la maquette au lieu
+  de rouvrir l'image générée — leçon pour la prochaine passe Stitch : toujours
+  ré-ouvrir (`Read`) chaque PNG de maquette juste avant d'implémenter l'écran
+  correspondant, ne pas se fier à un souvenir/résumé. Nouveau composant
+  **`src/components/ui/action-row.tsx`** (`ActionRow` : icône dans un badge
+  rond 44px, titre/sous-titre, chevron `chevron-forward`, prop `recommended`
+  → bordure `theme.tint` 2px + fond `backgroundSelected` + badge pilule).
+  `new-conversation.tsx` étape « method » réécrite avec 4 `ActionRow` au lieu
+  de 4 `ActionCard` en grille ; le récap de langues devient une pastille pilule
+  avec icône crayon (`Français ⇄ English ✎`) au lieu d'un texte brut. Nouvelle
+  clé i18n `new.recommended` (8 blocs). `ActionCard` (grille, utilisée par
+  l'accueil) et le reste de l'itér. 12 (boutons pilule, logo, splash)
+  inchangés — cet écran était le seul vrai écart de layout repéré. Vérifié
+  `tsc`/`lint` + capture Playwright web comparée côte à côte à la maquette.
+  Web + APK + iOS régénérés.
 - **Itér. 12** — **fidélité aux maquettes Stitch** (retour utilisateur après
   itér. 11 : « je veux exactement les mêmes boutons » que dans la galerie
   publiée). (a) **`Button`** (`src/components/ui/button.tsx`) : `borderRadius`
