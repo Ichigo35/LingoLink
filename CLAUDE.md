@@ -9,12 +9,11 @@ sections). Répondre **toujours en français**.
 
 - **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
   rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
-  Itér. 10 = app uniquement, **pas de redéploiement Worker nécessaire**.
-- **Web** déployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  (itér. 9) — **redeploy web recommandé** pour publier l'itér. 10
-  (`bash scripts/deploy-web.sh`), pas encore fait à ce stade.
-- **APK** `build-output/LingoLink.apk` — **pas encore rebuild** avec l'itér. 10 ;
-  `bash scripts/build-apk.sh` à relancer avant de distribuer. App iOS sur simulateur.
+  Itér. 10 = app uniquement, pas de redéploiement Worker nécessaire.
+- **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
+  avec l'itér. 10 (`bash scripts/deploy-web.sh`).
+- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 10 (57 Mo, arm64,
+  signé release). App iOS sur simulateur.
 - Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
   langue/statut sont du `text` libre).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
