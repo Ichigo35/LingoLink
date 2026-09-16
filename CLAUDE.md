@@ -5,11 +5,11 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-11) — MVP complet + 13 itérations de retours terrain / revue UX
+## État (2026-09-16) — MVP complet + 14 itérations de retours terrain / revue UX
 
-- **Worker** `lingolink-api` déployé, version **`6b59d71c`** (itér. 9 : page de
-  rebond `/join` traduite). URL `https://lingolink-api.ichigo35.workers.dev`.
-  Itér. 10 à 13 = app uniquement, pas de redéploiement Worker nécessaire.
+- **Worker** `lingolink-api` déployé, version **`83172d7a`** (itér. 14 : fix
+  lien WhatsApp/in-app browser sur `/join`). URL
+  `https://lingolink-api.ichigo35.workers.dev`.
 - **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
   avec l'itér. 13 (`bash scripts/deploy-web.sh`).
 - **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 13 (57 Mo, arm64,
@@ -23,6 +23,28 @@ sections). Répondre **toujours en français**.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 14** — **lien de partage cassé depuis WhatsApp** (bug remonté par
+  l'utilisateur, capture à l'appui : ouvrir le lien `/join/<token>` reçu par
+  WhatsApp affichait immédiatement une alerte native Safari « adresse invalide »
+  par-dessus la page). **Cause racine** : `server/src/join.ts` `bouncePage()`
+  contenait un `setTimeout(1200ms)` qui forçait automatiquement
+  `window.location.href = 'lingolink://join/<token>'`. Le navigateur intégré de
+  WhatsApp (WebView, pas Safari plein) bloque la navigation programmatique vers
+  un scheme personnalisé non enregistré et remonte cette alerte native — qui
+  recouvre les boutons de secours dès le chargement, avant même que
+  l'utilisateur ait pu agir. **Correctif** : (a) suppression pure et simple du
+  `setTimeout`/redirection automatique — les deux boutons (« Ouvrir dans
+  l'app » / « Continuer dans le navigateur ») restent de simples `<a href>`,
+  navigation uniquement sur tap utilisateur ; (b) détection des navigateurs
+  intégrés via `User-Agent` (`isInAppBrowser`, motifs `WhatsApp|FBAN|FBAV
+  |Instagram|Line/`) : dans ce cas le bouton « Continuer dans le navigateur »
+  (navigation HTTPS normale, toujours fiable) passe en premier et en style
+  plein ; le bouton app passe en secondaire (`ghost`). Ailleurs (Safari/Chrome
+  plein), l'ordre d'origine est gardé (app en premier). Vérifié `tsc --noEmit`
+  (server) + `curl` avec et sans UA WhatsApp sur l'URL de prod (ordre des
+  boutons + absence du script confirmés). Worker redéployé (`83172d7a`). Pas de
+  migration, pas de changement app/web (la logique tourne entièrement côté
+  page de rebond du Worker).
 - **Itér. 13** — **correction d'un vrai écart avec la maquette Stitch**, signalé
   par l'utilisateur avec capture à l'appui (comparaison écran réel vs maquette
   `new-conversation.png`) : l'écran « Comment vous connecter ? » (étape 2 de
@@ -433,11 +455,17 @@ l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
   (plus `lingolink://…` : non cliquable dans WhatsApp). Construit dans
   `server/src/sessions.ts` `toDto()` à partir de `BETTER_AUTH_URL`.
 - **`server/src/join.ts`** :
-  - `GET /join/:token` → page HTML légère qui rebondit vers
-    `lingolink://join/<token>` (bouton de secours). Sert aussi de cible App Links.
-    **Traduite (8 langues d'UI) via `Accept-Language`** (`T` + `pickLang`), le
-    bouton navigateur pointe vers `<WEB_APP_URL>/join/<token>?hl=<code>`.
-    Auto-redirection scheme après 1200 ms, seulement si l'onglet est visible.
+  - `GET /join/:token` → page HTML légère avec 2 boutons `<a href>` :
+    `lingolink://join/<token>` (app) et `<WEB_APP_URL>/join/<token>?hl=<code>`
+    (web). Sert aussi de cible App Links. **Traduite (8 langues d'UI) via
+    `Accept-Language`** (`T` + `pickLang`). **Pas de redirection JS
+    automatique** (retirée itér. 14 — un `setTimeout` vers le scheme app
+    faisait planter la page avec une alerte native « adresse invalide » dans
+    les navigateurs intégrés comme WhatsApp/Instagram/Facebook ; navigation
+    uniquement sur tap utilisateur désormais). `isInAppBrowser()` détecte ces
+    navigateurs via `User-Agent` et, si détecté, met le bouton web en premier
+    /en style plein (le scheme app y est de toute façon peu fiable) ; sinon
+    l'app reste le bouton principal.
   - `GET /.well-known/assetlinks.json` → vérif **App Links Android** (package
     `com.ichigo35.lingolink` + SHA-256 du keystore release). Android ouvre alors
     l'app directement, sans page intermédiaire.

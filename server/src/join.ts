@@ -127,20 +127,39 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
+/**
+ * Navigateurs intégrés (WhatsApp, Instagram, Facebook, Line, …) : ces WebViews
+ * bloquent souvent la navigation vers un scheme personnalisé non enregistré et
+ * affichent une alerte native « adresse invalide » — y compris pour une simple
+ * redirection JS automatique. Dans ce contexte on ne tente PAS le lien
+ * `lingolink://` et on met en avant le bouton web (navigation HTTPS normale,
+ * toujours fiable).
+ */
+function isInAppBrowser(ua: string | null | undefined): boolean {
+  if (!ua) return false;
+  return /WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(ua);
+}
+
 function bouncePage(
   scheme: string,
   webUrl: string | undefined,
   token: string,
   lang: UiLang,
+  inApp: boolean,
 ): string {
   const s = T[lang];
   const deep = `${scheme}://join/${encodeURIComponent(token)}`;
   const web = webUrl
     ? `${webUrl.replace(/\/$/, '')}/join/${encodeURIComponent(token)}?hl=${lang}`
     : null;
+  const appBtnCls = inApp ? 'btn ghost' : 'btn';
+  const webBtnCls = inApp ? 'btn' : 'btn ghost';
+  const appBtn = `<a class="${appBtnCls}" href="${escapeHtml(deep)}">${escapeHtml(s.openApp)}</a>`;
   const webBtn = web
-    ? `<a class="btn ghost" href="${escapeHtml(web)}">${escapeHtml(s.openWeb)}</a>`
+    ? `<a class="${webBtnCls}" href="${escapeHtml(web)}">${escapeHtml(s.openWeb)}</a>`
     : '';
+  // Dans un navigateur intégré, le bouton web passe en premier (action recommandée).
+  const buttons = inApp ? `${webBtn}${appBtn}` : `${appBtn}${webBtn}`;
   return `<!doctype html>
 <html lang="${s.htmlLang}">
 <head>
@@ -165,18 +184,9 @@ function bouncePage(
   <div class="card">
     <h1>Lingo Link</h1>
     <p>${escapeHtml(s.join)}</p>
-    <a class="btn" href="${escapeHtml(deep)}">${escapeHtml(s.openApp)}</a>
-    ${webBtn}
+    ${buttons}
     <p class="hint">${escapeHtml(s.hintNoApp)}<br />${escapeHtml(s.hintSlow)}</p>
   </div>
-  <script>
-    // Tente l'app une seule fois, après un court délai (laisse voir les boutons).
-    setTimeout(function () {
-      if (document.visibilityState === 'visible') {
-        window.location.href = ${JSON.stringify(deep)};
-      }
-    }, 1200);
-  </script>
 </body>
 </html>`;
 }
@@ -203,8 +213,9 @@ export function registerJoinRoutes(app: Hono<AppEnv>) {
       return c.text('Lien de conversation invalide. / Invalid conversation link.', 400);
     }
     const lang = pickLang(c.req.header('accept-language'));
+    const inApp = isInAppBrowser(c.req.header('user-agent'));
     return c.html(
-      bouncePage(c.env.APP_SCHEME || 'lingolink', c.env.WEB_APP_URL, token, lang),
+      bouncePage(c.env.APP_SCHEME || 'lingolink', c.env.WEB_APP_URL, token, lang, inApp),
       200,
       { 'Cache-Control': 'no-store', 'Content-Language': T[lang].htmlLang },
     );
