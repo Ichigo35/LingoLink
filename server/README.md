@@ -17,6 +17,8 @@ parle jamais directement à Neon ni à Gemini.
 - ✅ **Phase 6** — Conversation : `src/messages.ts` (`/api/sessions/:id/messages`),
   transcription + traduction **streamées** vers la room DO (`message` /
   `message_update`). Modèle `gemini-3.5-flash`. Migration `0003_messages.sql`.
+  Messages écrits, édition (retraduction) et suppression : `PATCH` / `DELETE`
+  `/api/sessions/:id/messages/:messageId` (itér. 15, migration `0006_message_edit.sql`).
 - ✅ **Phase 7** — Lien d'invitation : `GET /api/sessions/lookup` (aperçu public).
 - ✅ **Phase 8** — Contacts : `src/contacts.ts`, Durable Object `UserInbox`
   (`src/user-inbox.ts`, `src/inbox.ts`) pour les invitations temps réel.
@@ -51,7 +53,9 @@ parle jamais directement à Neon ni à Gemini.
 | `POST /api/ai/process` | `{audioBase64, mimeType, sourceLanguage, targetLanguage}` → `{transcript, translation}` (écran de test dev) |
 | `POST /api/ai/translate` | `{text, sourceLanguage, targetLanguage}` → `{translation}` |
 | `GET /api/sessions/:id/messages` | historique récent |
-| `POST /api/sessions/:id/messages` | `{audioBase64, mimeType, clientId}` → crée le message, streame transcription+traduction vers la room, renvoie le message final |
+| `POST /api/sessions/:id/messages` | `{audioBase64, mimeType, clientId}` (vocal, streamé) **ou** `{text, clientId}` (écrit, traduction directe) → crée le message, renvoie le message final |
+| `PATCH /api/sessions/:id/messages/:messageId` | `{text}` → corrige SON message (transcription ou texte), retraduit, `edited: true` |
+| `DELETE /api/sessions/:id/messages/:messageId` | supprime définitivement SON message (diffusé aux deux participants) |
 | `POST /api/presence/ping` | heartbeat de présence |
 | `GET /api/users/search?q=` | recherche par username (≥ 3 car.) |
 | `GET \| DELETE /api/contacts` \| `/api/contacts/:id` | liste (avec `isOnline`) / suppression |
@@ -69,7 +73,8 @@ parle jamais directement à Neon ni à Gemini.
 - `{ type: 'presence', participants: [{ id, role, online }] }`
 - `{ type: 'session_status', session: <dto> }` (poussé sur join / leave / end)
 - `{ type: 'message', message }` (nouveau message, statut `processing`)
-- `{ type: 'message_update', message }` (transcription/traduction progressive → `completed`/`failed`)
+- `{ type: 'message_update', message }` (transcription/traduction progressive → `completed`/`failed`, ou correction après édition)
+- `{ type: 'message_deleted', messageId }` (message supprimé par son émetteur)
 
 Client → serveur : `{ type: 'ping' }`.
 

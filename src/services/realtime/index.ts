@@ -24,7 +24,8 @@ export type RealtimeEvent =
   | { type: 'presence'; participants: PresenceParticipant[] }
   | { type: 'session_status'; session: ConversationSession }
   | { type: 'message'; message: ConversationMessage }
-  | { type: 'message_update'; message: ConversationMessage };
+  | { type: 'message_update'; message: ConversationMessage }
+  | { type: 'message_deleted'; messageId: string };
 
 export type OutgoingEvent = { type: 'ping' };
 

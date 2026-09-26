@@ -5,24 +5,81 @@ converser naturellement : chacun parle, l'app transcrit + traduit en direct sur
 les deux téléphones. Cahier des charges complet fourni par l'utilisateur (22
 sections). Répondre **toujours en français**.
 
-## État (2026-09-16) — MVP complet + 14 itérations de retours terrain / revue UX
+## État (2026-09-26) — MVP complet + 15 itérations de retours terrain / revue UX
 
+- ⚠️ **Itér. 15 codée mais PAS déployée** : cette itération a été développée
+  depuis une session cloud **sans identifiants** (pas de session `wrangler
+  login`, pas de `DATABASE_URL`/`GEMINI_API_KEY` local, egress réseau bloqué
+  vers `lingolink-api.ichigo35.workers.dev` par la politique de l'organisation).
+  `tsc --noEmit` (app + server) et `npm run lint` passent, mais **rien n'a été
+  appliqué en prod** : ni la migration `0006_message_edit.sql` sur Neon, ni
+  `wrangler deploy`, ni `deploy-web.sh`, ni rebuild APK/iOS. À faire depuis un
+  poste avec les accès (voir **Commandes**) avant de considérer l'itération
+  terminée. Détail dans le journal ci-dessous.
 - **Worker** `lingolink-api` déployé, version **`83172d7a`** (itér. 14 : fix
-  lien WhatsApp/in-app browser sur `/join`). URL
-  `https://lingolink-api.ichigo35.workers.dev`.
-- **Web** redéployé sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev`
-  avec l'itér. 13 (`bash scripts/deploy-web.sh`).
-- **APK** `build-output/LingoLink.apk` rebuild avec l'itér. 13 (57 Mo, arm64,
-  signé release). **App iOS rebuild avec l'itér. 13** sur simulateur
-  iPhone 17 Pro (`npx expo run:ios`) — vérifiée visuellement.
-- Migrations Neon `0001..0005` appliquées. Aucune migration depuis (les colonnes
-  langue/statut sont du `text` libre).
+  lien WhatsApp/in-app browser sur `/join`) — **ne contient pas encore l'itér. 15**.
+  URL `https://lingolink-api.ichigo35.workers.dev`.
+- **Web** sur Cloudflare Pages `lingolink-web` → `lingolink-web.pages.dev` —
+  contient l'itér. 13, **pas encore l'itér. 15**.
+- **APK** `build-output/LingoLink.apk` — contient l'itér. 13, **pas encore
+  l'itér. 15**. Idem app iOS simulateur.
+- Migrations Neon `0001..0005` appliquées. **`0006_message_edit.sql` écrite,
+  pas encore appliquée** (voir ⚠️ ci-dessus).
 - Liste « Reste à faire » initiale **terminée** : i18n de tous les écrans, purge
   de rétention (cron), rate limiting proxy Gemini, logo/icône, durcissement
   `wrangler.jsonc`, signature release Android.
 
 ### Journal des itérations (récent → ancien ; détail dans les sections `##`)
 
+- **Itér. 15** — 5 demandes utilisateur : lien d'invitation sur iPhone, messages
+  écrits, édition, suppression, retour sonore micro. ⚠️ Codée depuis une session
+  cloud sans identifiants de déploiement — voir ⚠️ en tête de fichier.
+  (a) **vérif. lien `/join` sur iPhone Safari/Chrome** : rejoué la génération de
+  `bouncePage()` (Safari plein + `CriOS`) — les deux boutons sont de simples
+  `<a href>` sans redirection JS automatique (déjà retiré itér. 14), donc
+  fiables dans les deux navigateurs ; `isInAppBrowser()` ne les détecte pas
+  comme navigateur intégré (comportement normal, distinct de WhatsApp). Bug
+  trouvé au passage et corrigé : la page utilisait encore l'ancien bleu
+  `#2F6BFF` (`server/src/join.ts`) au lieu du corail `#D14526` adopté depuis
+  l'itér. 11 — incohérence de marque, sans impact fonctionnel. (b) **messages
+  écrits** : `POST /api/sessions/:id/messages` accepte désormais `{text,
+  clientId}` en plus de `{audioBase64, ...}` — traduction directe
+  (`translateText`, pas de passage par l'audio Gemini), même pipeline de
+  diffusion temps réel que la voix. Barre de saisie (`TextInput` + bouton
+  d'envoi) ajoutée sous la liste de messages dans `conversation/[id].tsx`,
+  `KeyboardAvoidingView` ajouté à l'écran (absent jusqu'ici, aucun champ
+  clavier). `conversationsService.sendTextMessage`. (c) **édition** : nouvelle
+  route `PATCH /api/sessions/:id/messages/:messageId` — seul l'émetteur peut
+  corriger SON message (transcription vocale ou texte écrit), qui est
+  **retraduit** automatiquement (langues figées à l'envoi, cf. itér. 7) ;
+  refusé si le message est encore `processing`/`partial`. Nouvelle colonne
+  `edited` (migration `0006_message_edit.sql`), affichée comme repère
+  « · modifié » dans la bulle. Icônes crayon/corbeille sous ses propres bulles
+  (visibles seulement une fois le message `completed`/`failed`) ouvrant une
+  modale d'édition ou une confirmation de suppression. (d) **suppression** :
+  `DELETE /api/sessions/:id/messages/:messageId` — même règle (émetteur
+  uniquement), `DELETE` réel (pas de soft-delete, cohérent avec la rétention),
+  diffuse `{type:'message_deleted', messageId}` à la room pour que la bulle
+  disparaisse des deux côtés. **Bug de course corrigé en écrivant cette
+  fonctionnalité** : le handler `POST /messages` tenait la ligne en mémoire
+  pendant tout l'appel Gemini (streaming vocal ~2,3 s) puis la rediffusait
+  telle quelle à la fin, sans revérifier qu'elle existait toujours — si
+  l'émetteur supprimait son message pendant qu'il était encore `processing`,
+  la bulle pouvait ressusciter chez les deux participants après coup. Corrigé
+  avec `.returning('id')` sur les `UPDATE` finaux (vocal, texte, échec) :
+  la diffusion `message_update` n'a lieu que si la ligne existe encore.
+  (e) **retour sonore micro** : deux bips synthétisés (sinus + enveloppe,
+  aucun fichier tiers, ~130-150 ms, `assets/sounds/record-{start,stop}.wav`,
+  générés par script) joués via `expo-audio` (`useAudioPlayer`, nouveau hook
+  `src/features/conversation/use-recording-sounds.ts`) au 1ᵉʳ tap (départ,
+  glissando montant) et au 2ᵉ tap (fin, glissando descendant) du bouton micro.
+  Pas de `playsInSilentMode` forcé — comme un son système, silencieux si le
+  téléphone est en mode silencieux. 10 nouvelles clés i18n (8 blocs) :
+  `conv.textPlaceholder/send/edit/editTitle/editFailed/deleteTitle/deleteBody
+  /deleteFailed/editedTag`. Vérifié `tsc --noEmit` (app + server) + `npm run
+  lint` (app) — **pas de test contre une vraie base Neon / build APK / iOS
+  / déploiement**, session sans les accès nécessaires (voir ⚠️ en tête de
+  fichier et **Reste à faire**).
 - **Itér. 14** — **lien de partage cassé depuis WhatsApp** (bug remonté par
   l'utilisateur, capture à l'appui : ouvrir le lien `/join/<token>` reçu par
   WhatsApp affichait immédiatement une alerte native Safari « adresse invalide »
@@ -423,6 +480,13 @@ progressivement, mais il n'y a plus qu'un message par prise de parole.
 `blob.type`). Indispensable sur le web où `expo-audio` rend un `blob:` webm/opus
 et où deviner le mime donnait `audio/mp4` → Gemini n'arrivait pas à transcrire.
 
+**Retour sonore (itér. 15)** : `src/features/conversation/use-recording-sounds.ts`
+(`useRecordingSounds`, `expo-audio` `useAudioPlayer`) joue un bip synthétisé
+(sinus + enveloppe, généré par script, pas de fichier tiers) au 1ᵉʳ tap
+(`assets/sounds/record-start.wav`, glissando montant) et au 2ᵉ tap
+(`record-stop.wav`, glissando descendant). Pas de `playsInSilentMode` forcé —
+silencieux en mode silencieux, comme un son système.
+
 ## Une seule conversation à la fois (garde)
 
 `src/features/conversation/conversation-guard.tsx` : `ConversationGuardProvider`
@@ -449,6 +513,39 @@ topbar de `conversation/[id].tsx` (réutilise `LanguageSelector` dans un `Modal`
 Les messages déjà envoyés gardent leur `sourceLanguage`/`targetLanguage` (figés à
 l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
 
+## Messages écrits / édition / suppression (itér. 15)
+
+- **Écrire un message** : `POST /api/sessions/:id/messages` accepte `{text,
+  clientId}` en alternative à `{audioBase64, mimeType, clientId}` — traduction
+  directe via `provider.translateText` (pas de passage par l'audio Gemini),
+  même statuts/diffusion temps réel que la voix (`message` puis
+  `message_update`). Client : `conversationsService.sendTextMessage`, barre de
+  saisie (`TextInput` + bouton d'envoi) sous la liste de messages dans
+  `conversation/[id].tsx` (`KeyboardAvoidingView` ajouté à l'écran).
+- **Éditer** : `PATCH /api/sessions/:id/messages/:messageId` `{text}` — SEUL
+  l'émetteur peut corriger SON message (transcription vocale ou texte écrit) ;
+  retraduit automatiquement avec les langues **figées à l'envoi** (comme
+  ci-dessus) ; refusé si le message est encore `processing`/`partial` (409) ou
+  si la session n'est plus `active`. Colonne `edited` (migration
+  `0006_message_edit.sql`) → repère « · modifié » affiché dans la bulle.
+  Client : `conversationsService.editMessage`, icône crayon sous ses propres
+  bulles (visible seulement une fois `completed`/`failed`) ouvrant une modale
+  avec le texte pré-rempli.
+- **Supprimer** : `DELETE /api/sessions/:id/messages/:messageId` — même règle
+  (émetteur uniquement), suppression réelle de la ligne (pas de soft-delete,
+  cohérent avec la rétention en `DELETE`), diffuse `{type:'message_deleted',
+  messageId}` à la room DO → la bulle disparaît chez les deux participants.
+  Client : `conversationsService.deleteMessage`, icône corbeille + `ConfirmDialog`.
+- **Édition/suppression restent réservées à ses propres messages** (choix
+  volontaire pour rester cohérent avec « les langues sont figées à l'envoi » —
+  on ne réécrit jamais ce que l'autre a dit) et **uniquement pendant que la
+  session est `active`** (comme l'envoi).
+- **Course corrigée** : `POST /messages` tient la ligne en mémoire pendant tout
+  l'appel Gemini puis rediffuse le résultat final — si le message est supprimé
+  pendant ce temps, l'`UPDATE` final utilise `.returning('id')` : si la ligne
+  n'existe plus, on ne rediffuse pas (sinon la bulle supprimée ressuscitait
+  chez les deux participants une fois la traduction/transcription terminée).
+
 ## Liens de partage / deep links
 
 - **`session.joinUrl` = URL HTTPS** `https://lingolink-api.ichigo35.workers.dev/join/<token>`
@@ -465,7 +562,11 @@ l'envoi dans `messages.ts`) ; seuls les suivants suivent la nouvelle langue.
     uniquement sur tap utilisateur désormais). `isInAppBrowser()` détecte ces
     navigateurs via `User-Agent` et, si détecté, met le bouton web en premier
     /en style plein (le scheme app y est de toute façon peu fiable) ; sinon
-    l'app reste le bouton principal.
+    l'app reste le bouton principal. **Vérifié itér. 15** (Safari iPhone plein +
+    `CriOS`) : les deux navigateurs sont traités identiquement à Safari desktop
+    (`isInAppBrowser` ne les détecte pas), boutons `<a href>` fiables dans les
+    deux cas. Bug trouvé et corrigé au passage : la page utilisait encore
+    l'ancien bleu `#2F6BFF` au lieu du corail `#D14526` (itér. 11).
   - `GET /.well-known/assetlinks.json` → vérif **App Links Android** (package
     `com.ichigo35.lingolink` + SHA-256 du keystore release). Android ouvre alors
     l'app directement, sans page intermédiaire.
@@ -569,6 +670,18 @@ Lint `react-hooks/set-state-in-effect` : faux positifs fréquents sur les action
 async en effet → `eslint-disable-next-line` avec justification (pattern déjà utilisé).
 
 ## Reste à faire (idées)
+
+**⚠️ Bloquant, à faire avant de considérer l'itér. 15 terminée** (voir l'alerte
+en tête de fichier — écrit depuis une session cloud sans accès de déploiement) :
+1. Appliquer `server/migrations/0006_message_edit.sql` sur Neon (colonne
+   `edited` + grant `delete`).
+2. `cd server && bash deploy-secrets.sh && npx wrangler deploy` (Worker).
+3. `bash scripts/deploy-web.sh` (web).
+4. `bash scripts/build-apk.sh` (APK) + `npx expo run:ios` (iOS simulateur) —
+   tester en réel la saisie texte, l'édition, la suppression et les bips
+   micro (aucun de ces flux n'a pu être testé contre une vraie session/DB).
+5. Mettre à jour la version du Worker + les mentions « contient l'itér. 15 »
+   dans **État** une fois fait.
 
 Pistes libres :
 - Faire **relire les traductions d'UI** (surtout `lo`, idéalement `th`/`hi`) par

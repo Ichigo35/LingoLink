@@ -2,7 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,6 +22,7 @@ import { LanguageSelector } from '@/components/ui/language-selector';
 import { formatLanguage, isLanguageCode, type LanguageCode } from '@/config/languages';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAudioCapture } from '@/features/conversation/use-audio-capture';
+import { useRecordingSounds } from '@/features/conversation/use-recording-sounds';
 import { useAuth } from '@/hooks/use-auth';
 import { useLiveSession } from '@/hooks/use-live-session';
 import { useTheme } from '@/hooks/use-theme';
@@ -30,6 +41,7 @@ export default function ConversationScreen() {
   const t = useT();
   const { session, loading, error, connected, peerOnline, messages } = useLiveSession(id, user?.id);
   const capture = useAudioCapture();
+  const sounds = useRecordingSounds();
 
   const [pending, setPending] = useState<ConversationMessage[]>([]);
   const [inFlight, setInFlight] = useState(0);
@@ -38,6 +50,16 @@ export default function ConversationScreen() {
   const [recording, setRecording] = useState(false);
   const micBusyRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+  /** Message écrit en cours de saisie. */
+  const [textInput, setTextInput] = useState('');
+  const [sendingText, setSendingText] = useState(false);
+  /** Message en cours d'édition ({messageId, text}) — modal ouverte si non-null. */
+  const [editing, setEditing] = useState<{ messageId: string; text: string } | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  /** Id du message dont la suppression est en attente de confirmation. */
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   /** true dès que l'utilisateur local déclenche lui-même la sortie. */
   const [leaving, setLeaving] = useState(false);
   /** Confirmation « Quitter / Terminer » ouverte. */
@@ -82,6 +104,7 @@ export default function ConversationScreen() {
         translatedText: '',
         status: 'processing',
         clientId,
+        edited: false,
         createdAt: new Date().toISOString(),
       };
       setPending((p) => [...p, optimistic]);
@@ -106,11 +129,13 @@ export default function ConversationScreen() {
     try {
       if (recording) {
         setRecording(false);
+        sounds.playStop();
         const segment = await capture.stop();
         if (segment) void sendSegment(segment);
       } else {
         setMicError(null);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        sounds.playStart();
         const ok = await capture.start();
         if (ok) setRecording(true);
         else setMicError(t('conv.micNotAllowed'));
@@ -118,7 +143,74 @@ export default function ConversationScreen() {
     } finally {
       micBusyRef.current = false;
     }
-  }, [recording, capture, sendSegment, t]);
+  }, [recording, capture, sendSegment, sounds, t]);
+
+  /** Envoie un message écrit — même pipeline que la voix, sans passage par Gemini audio. */
+  const sendText = useCallback(async () => {
+    const value = textInput.trim();
+    if (!value || !id || !session || !myLang || !otherLang || sendingText) return;
+    const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: ConversationMessage = {
+      id: `pending-${clientId}`,
+      sessionId: id,
+      senderId: user?.id ?? '',
+      sourceLanguage: myLang as LanguageCode,
+      targetLanguage: otherLang as LanguageCode,
+      originalTranscript: value,
+      translatedText: '',
+      status: 'processing',
+      clientId,
+      edited: false,
+      createdAt: new Date().toISOString(),
+    };
+    setPending((p) => [...p, optimistic]);
+    setTextInput('');
+    setSendingText(true);
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    try {
+      await conversationsService.sendTextMessage(id, value, clientId);
+    } catch (e) {
+      setPending((p) => p.map((m) => (m.clientId === clientId ? { ...m, status: 'failed' } : m)));
+      setMicError(e instanceof ApiRequestError ? e.message : t('conv.sendFailed'));
+    } finally {
+      setSendingText(false);
+    }
+  }, [textInput, id, session, myLang, otherLang, sendingText, user?.id, t]);
+
+  const openEdit = useCallback((message: ConversationMessage) => {
+    setEditError(null);
+    setEditing({ messageId: message.id, text: message.originalTranscript });
+  }, []);
+
+  const submitEdit = useCallback(async () => {
+    if (!editing || !id) return;
+    const value = editing.text.trim();
+    if (!value) return;
+    setEditBusy(true);
+    setEditError(null);
+    try {
+      await conversationsService.editMessage(id, editing.messageId, value);
+      setEditing(null);
+    } catch (e) {
+      setEditError(e instanceof ApiRequestError ? e.message : t('conv.editFailed'));
+    } finally {
+      setEditBusy(false);
+    }
+  }, [editing, id, t]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleting || !id || deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      await conversationsService.deleteMessage(id, deleting);
+      setPending((p) => p.filter((m) => m.id !== deleting));
+      setDeleting(null);
+    } catch (e) {
+      setMicError(e instanceof ApiRequestError ? e.message : t('conv.deleteFailed'));
+    } finally {
+      setDeleteBusy(false);
+    }
+  }, [deleting, id, deleteBusy, t]);
 
   // Coupe proprement l'enregistrement si l'écran est quitté pendant la parole.
   const captureRef = useRef(capture);
@@ -192,6 +284,9 @@ export default function ConversationScreen() {
     <SafeAreaView
       style={[styles.fill, { backgroundColor: theme.background }]}
       edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Barre d'état */}
       <View style={[styles.topbar, { borderColor: theme.border }]}>
         <View style={styles.topbarLeft}>
@@ -334,7 +429,13 @@ export default function ConversationScreen() {
           </ThemedText>
         ) : (
           allMessages.map((m) => (
-            <MessageBubble key={m.id} message={m} mine={m.senderId === user?.id} />
+            <MessageBubble
+              key={m.id}
+              message={m}
+              mine={m.senderId === user?.id}
+              onEdit={() => openEdit(m)}
+              onDelete={() => setDeleting(m.id)}
+            />
           ))
         )}
       </ScrollView>
@@ -342,6 +443,86 @@ export default function ConversationScreen() {
       {micError ? (
         <ThemedText style={[styles.micError, { color: theme.danger }]}>{micError}</ThemedText>
       ) : null}
+
+      {/* Message écrit — alternative au micro. */}
+      {!ended ? (
+        <View style={styles.textRow}>
+          <TextInput
+            value={textInput}
+            onChangeText={setTextInput}
+            placeholder={t('conv.textPlaceholder')}
+            placeholderTextColor={theme.textSecondary}
+            multiline
+            editable={active}
+            style={[
+              styles.textInput,
+              { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border },
+            ]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('conv.send')}
+            onPress={sendText}
+            disabled={!active || !textInput.trim() || sendingText}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              { backgroundColor: theme.tint },
+              (!active || !textInput.trim() || sendingText) && styles.dimmed,
+              pressed && styles.pressed,
+            ]}>
+            {sendingText ? (
+              <ActivityIndicator size="small" color={theme.tintText} />
+            ) : (
+              <Ionicons name="send" size={18} color={theme.tintText} />
+            )}
+          </Pressable>
+        </View>
+      ) : null}
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!editing}
+        onRequestClose={() => setEditing(null)}>
+        <View style={styles.langBackdrop}>
+          <View style={[styles.langCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <ThemedText style={styles.langTitle}>{t('conv.editTitle')}</ThemedText>
+            <TextInput
+              value={editing?.text ?? ''}
+              onChangeText={(v) => setEditing((e) => (e ? { ...e, text: v } : e))}
+              multiline
+              autoFocus
+              style={[
+                styles.textInput,
+                { color: theme.text, backgroundColor: theme.backgroundElement, borderColor: theme.border },
+              ]}
+            />
+            {editError ? (
+              <ThemedText style={[styles.micError, { color: theme.danger }]}>{editError}</ThemedText>
+            ) : null}
+            <Button
+              label={t('common.save')}
+              onPress={submitEdit}
+              loading={editBusy}
+              disabled={!editing?.text.trim()}
+              style={{ marginTop: Spacing.two }}
+            />
+            <Button label={t('common.cancel')} variant="ghost" onPress={() => setEditing(null)} />
+          </View>
+        </View>
+      </Modal>
+
+      <ConfirmDialog
+        visible={!!deleting}
+        title={t('conv.deleteTitle')}
+        message={t('conv.deleteBody')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleting(null)}
+      />
 
       {/* Bouton micro */}
       <View style={styles.micZone}>
@@ -379,14 +560,23 @@ export default function ConversationScreen() {
           </Pressable>
         )}
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-function MessageBubble({ message, mine }: { message: ConversationMessage; mine: boolean }) {
+interface MessageBubbleProps {
+  message: ConversationMessage;
+  mine: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function MessageBubble({ message, mine, onEdit, onDelete }: MessageBubbleProps) {
   const theme = useTheme();
   const t = useT();
   const failed = message.status === 'failed';
+  const settled = message.status === 'completed' || message.status === 'failed';
   // "En écoute" tant qu'aucun mot n'est encore transcrit (statuts processing OU
   // partial sans texte) — évite un flash "…" entre le début d'envoi et le 1ᵉʳ mot.
   const awaitingFirstWord =
@@ -409,6 +599,7 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
         <ThemedText
           style={[styles.bubbleMeta, { color: mine ? theme.tintText : theme.textSecondary }]}>
           {mine ? `${t('conv.you')} · ${src}` : src}
+          {message.edited ? ` · ${t('conv.editedTag')}` : ''}
         </ThemedText>
 
         {failed ? (
@@ -444,6 +635,27 @@ function MessageBubble({ message, mine }: { message: ConversationMessage; mine: 
             ) : null}
           </>
         )}
+
+        {mine && settled ? (
+          <View style={styles.bubbleActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('conv.edit')}
+              onPress={onEdit}
+              hitSlop={10}
+              style={({ pressed }) => [styles.bubbleActionBtn, pressed && styles.pressed]}>
+              <Ionicons name="pencil" size={14} color={mine ? theme.tintText : theme.textSecondary} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.delete')}
+              onPress={onDelete}
+              hitSlop={10}
+              style={({ pressed }) => [styles.bubbleActionBtn, pressed && styles.pressed]}>
+              <Ionicons name="trash" size={14} color={mine ? theme.tintText : theme.textSecondary} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -538,4 +750,36 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   micLabel: { fontSize: 17, fontWeight: '700' },
+  dimmed: { opacity: 0.5 },
+  textRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  textInput: {
+    flex: 1,
+    maxHeight: 100,
+    minHeight: 44,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    fontSize: 16,
+  },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubbleActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  bubbleActionBtn: { minWidth: 44, minHeight: 24, alignItems: 'center', justifyContent: 'center' },
 });

@@ -91,6 +91,12 @@ export function useLiveSession(sessionId: string | undefined, selfUserId?: strin
         case 'message_update':
           patch((base) => ({ messages: { ...base.messages, [event.message.id]: event.message } }));
           break;
+        case 'message_deleted':
+          patch((base) => {
+            const { [event.messageId]: _removed, ...rest } = base.messages;
+            return { messages: rest };
+          });
+          break;
       }
     });
 

@@ -170,11 +170,11 @@ function bouncePage(
   :root { color-scheme: light dark; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background:#2F6BFF; color:#fff; padding:24px; box-sizing:border-box; text-align:center; }
+    background:#D14526; color:#fff; padding:24px; box-sizing:border-box; text-align:center; }
   .card { max-width:360px; display:flex; flex-direction:column; gap:12px; }
   h1 { font-size:1.4rem; margin:0 0 4px; }
   p { opacity:.9; line-height:1.5; margin:0 0 12px; }
-  a.btn { display:block; background:#fff; color:#2F6BFF; font-weight:700;
+  a.btn { display:block; background:#fff; color:#D14526; font-weight:700;
     text-decoration:none; padding:14px 24px; border-radius:14px; font-size:1.05rem; }
   a.btn.ghost { background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.6); }
   .hint { margin-top:12px; font-size:.85rem; opacity:.75; }
