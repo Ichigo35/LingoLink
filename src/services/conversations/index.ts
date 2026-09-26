@@ -127,4 +127,35 @@ export const conversationsService = {
     );
     return message;
   },
+
+  /** Envoie un message écrit (traduit directement, sans passer par l'audio). */
+  async sendTextMessage(sessionId: string, text: string, clientId: string): Promise<ConversationMessage> {
+    const { message } = await apiRequest<{ message: ConversationMessage }>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
+      {
+        method: 'POST',
+        cookie: await authHeader(),
+        timeoutMs: 20_000,
+        body: { text, clientId },
+      },
+    );
+    return message;
+  },
+
+  /** Corrige un message déjà envoyé (transcription ou texte) — retraduit automatiquement. */
+  async editMessage(sessionId: string, messageId: string, text: string): Promise<ConversationMessage> {
+    const { message } = await apiRequest<{ message: ConversationMessage }>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`,
+      { method: 'PATCH', cookie: await authHeader(), timeoutMs: 20_000, body: { text } },
+    );
+    return message;
+  },
+
+  /** Supprime définitivement un de ses propres messages pour les deux participants. */
+  async deleteMessage(sessionId: string, messageId: string): Promise<void> {
+    await apiRequest<{ ok: true }>(
+      `/api/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`,
+      { method: 'DELETE', cookie: await authHeader() },
+    );
+  },
 };

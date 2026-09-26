@@ -75,6 +75,8 @@ export interface ConversationMessage {
   status: MessageStatus;
   /** Id local optionnel, pour réconcilier la bulle optimiste de l'émetteur. */
   clientId: string | null;
+  /** true si le texte a été corrigé après l'envoi initial (transcription ou écrit). */
+  edited: boolean;
   createdAt: ISODateString;
   /** Message d'erreur affichable quand `status === 'failed'` (transitoire, non persisté). */
   error?: string;

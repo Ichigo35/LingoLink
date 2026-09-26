@@ -42,6 +42,7 @@ export interface Database {
     translated_text: string;
     status: string;
     client_id: string | null;
+    edited: boolean;
     created_at: Date;
     updated_at: Date;
   };
